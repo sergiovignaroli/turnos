@@ -168,6 +168,11 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .avisos.compact .aviso .rt,.avisos.compact .aviso .btn{display:none}
 .avisos.compact .aviso .av-t{font-size:14px;margin:0}
 .avisos.compact .aviso .av-t::after{content:"  · ver";font-weight:400;color:var(--muted)}
+.price-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:10px 0}
+.price-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:4px 0;font-size:16px}
+.price-row b{font-size:17px;white-space:nowrap}
+.price-row.sub{border-top:1px dashed var(--line);margin-top:4px;padding-top:8px;color:var(--muted)}
+.price-row.sub b{color:var(--ink)}
 .prof-note{background:#fff4d6;color:#6b4500;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:16px}
 .adm-sec{margin-top:24px}
 .adm-sec h2{display:flex;align-items:center;gap:8px}
@@ -260,7 +265,7 @@ footer.ig a.wabtn svg{width:20px;height:20px}
       <div><b><span class="num">4</span>Completá tus datos y tocá “Confirmar turno”</b><p>Te va a llegar un mail con el turno y un link para <b>cambiarlo o cancelarlo</b>.</p></div>
     </div>
 
-    <div class="note info">Para confirmar el turno se pide una <b>seña</b>. Los datos para pagarla aparecen al terminar.</div>
+    <div class="note info">Antes de confirmar vas a ver el <b>valor de la consulta</b>. Para confirmar el turno se pide una <b>seña</b>; el resto se abona el día de la consulta. Los datos para pagar la seña aparecen al terminar.</div>
 
     <div id="aiBox" hidden>
       <h2 style="font-size:19px;margin:16px 0 4px">¿Te quedó alguna duda? Preguntame</h2>
@@ -496,7 +501,8 @@ function viewForm(errMsg, errFields) {
         <div class="copybox"><span>${esc(S.address)}</span><button type="button" class="btn small ghost" id="chgAddr">Cambiar</button></div>
         ${field('detalle', 'Piso, depto, timbre o referencias', { max: 120, ph: 'Ej: 3° B, timbre que no anda' })}`}
       <input class="hp" tabindex="-1" autocomplete="off" name="website" id="f_website" aria-hidden="true">
-      <div class="note warn" style="margin-top:18px">Para confirmar el turno se pide una seña de <b>${money(S.cfg ? S.cfg.senaMonto : 0)}</b>. Al terminar te mostramos cómo pagarla.</div>
+      ${priceBlock(S.cfg && S.cfg.precioTotal, S.cfg && S.cfg.senaMonto, 'pendiente')}
+      <div class="note warn" style="margin-top:8px">Para confirmar el turno se pide una seña de <b>${money(S.cfg ? S.cfg.senaMonto : 0)}</b>. Al terminar te mostramos cómo pagarla.</div>
       <button class="btn" type="submit" id="okBtn" style="margin-top:8px">Confirmar turno</button>
     </form>`;
   $('#back').onclick = () => viewSlots();
@@ -538,15 +544,27 @@ async function submitBooking() {
   viewDone(true);
 }
 
+/** Bloque de precio que ven los tutores: total, seña y saldo. */
+function priceBlock(total, sena, estado) {
+  total = Number(total || 0); sena = estado === 'no requerida' ? 0 : Number(sena || 0);
+  if (!total) return '';
+  const saldo = Math.max(0, total - sena);
+  let h = '<div class="price-box"><div class="price-row"><span>Valor total de la consulta</span><b>' + money(total) + '</b></div>';
+  if (sena) h += '<div class="price-row"><span>Seña' + (estado === 'pagada' ? ' (recibida ✔)' : ' para confirmar') + '</span><b>' + money(sena) + '</b></div>';
+  if (sena && saldo) h += '<div class="price-row sub"><span>Saldo a abonar el día de la consulta</span><b>' + money(saldo) + '</b></div>';
+  return h + '</div>';
+}
+
 function viewDone(fresh) {
   const b = S.booking, link = location.origin + location.pathname + '?t=' + S.token;
   const adm = S.adminBooking;
   const senaBlock = b.senaEstado === 'pendiente' ? `
     <div class="card" style="border:2px solid #ffd54a">
       <h2>Falta la seña: ${money(b.senaMonto)}</h2>
+      ${priceBlock(b.precioTotal, b.senaMonto, b.senaEstado)}
       <p style="margin:0 0 12px">${esc(b.senaInstrucciones)}</p>
       <a class="btn wa" target="_blank" rel="noopener" href="${waLink('Hola, envío el comprobante de la seña del turno de ' + b.mascota + ' (' + b.when + ').')}">Mandar comprobante por WhatsApp</a>
-    </div>` : (b.senaEstado === 'pagada' ? '<div class="note ok">Seña recibida ✔</div>' : '');
+    </div>` : (b.senaEstado === 'pagada' ? '<div class="note ok">Seña recibida ✔</div>' + priceBlock(b.precioTotal, b.senaMonto, b.senaEstado) : priceBlock(b.precioTotal, b.senaMonto, b.senaEstado));
   app.innerHTML = `
     <div class="center">
       <div class="big-ok"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
@@ -623,6 +641,7 @@ function viewManage(msg) {
         ${b.profesional ? '<dt>Te atiende</dt><dd>' + esc(b.profesional) + '</dd>' : ''}
       </dl>
     </div>
+    ${active ? priceBlock(b.precioTotal, b.senaMonto, b.senaEstado) : ''}
     ${active && b.senaEstado === 'pendiente' ? `<div class="card" style="border:2px solid #ffd54a"><p style="margin:0 0 12px">${esc(b.senaInstrucciones)}</p><a class="btn wa" target="_blank" rel="noopener" href="${waLink('Hola, envío el comprobante de la seña del turno de ' + b.mascota + ' (' + b.when + ').')}">Mandar comprobante por WhatsApp</a></div>` : ''}
     ${active ? (b.canChange ? `
       <div class="row">
@@ -716,7 +735,7 @@ async function viewAdmin() {
   loading('Cargando turnos…');
   const r = await api('admin_list', {});
   if (!r.ok) { if (/PIN/i.test(r.error || '')) { S.pin = ''; store('pin', null); return viewAdminLogin(r.error); } return viewError(r.error, viewAdmin); }
-  A.rows = r.rows; A.senaMonto = r.senaMonto; A.senaInstr = r.senaInstrucciones;
+  A.rows = r.rows; A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.senaInstr = r.senaInstrucciones;
   A.avisos = r.avisos || []; A.ausencias = r.ausencias || [];
   renderAdmin();
 }
@@ -733,7 +752,7 @@ function renderAdmin() {
       <button class="btn" type="button" id="newT">+ Cargar turno</button>
       <button class="btn secondary" type="button" id="reload">Actualizar</button>
     </div>
-    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a></div>
+    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precio y seña</a></div>
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Filtro">
         <button type="button" data-f="proximos" class="${A.filter === 'proximos' ? 'on' : ''}">Próximos</button>
@@ -754,7 +773,8 @@ function renderAdmin() {
     html += `<div class="adm-item ${act ? '' : 'cancel'}" data-id="${esc(r.id)}">
       <div class="adm-top"><span class="hour">${r.hm}</span><span class="tag ${r.servicio}">${r.servicio === 'neuro' ? 'Neuro' : 'Domicilio'}</span>
         ${act ? '' : '<span class="tag cxl">' + esc(r.estado) + '</span>'}
-        <span class="tag ${r.senaEstado === 'pagada' ? 'paid' : r.senaEstado === 'pendiente' ? 'pend' : 'na'}">Seña: ${esc(r.senaEstado)} ${money(r.senaMonto)}</span></div>
+        <span class="tag ${r.senaEstado === 'pagada' ? 'paid' : r.senaEstado === 'pendiente' ? 'pend' : 'na'}">Seña: ${esc(r.senaEstado)} ${money(r.senaMonto)}</span>
+        ${r.precio ? '<span class="tag na">Total ' + money(r.precio) + ' · saldo ' + money(r.saldo) + '</span>' : ''}</div>
       <div class="adm-det"><b>${esc(r.mascota)}</b> · ${esc(r.nombre)} ${esc(r.apellido)} · ${esc(r.telefono || '—')}${r.email ? ' · ' + esc(r.email) : ''}</div>
       ${r.profesional ? '<div class="adm-det">Atiende: <b>' + esc(r.profesional) + '</b></div>' : ''}
       <div class="adm-det">Motivo: ${esc(r.motivo)}</div>
@@ -765,7 +785,8 @@ function renderAdmin() {
         <select aria-label="Estado de la seña" data-act="sena">
           ${['pendiente','pagada','no requerida'].map(s => '<option ' + (s === r.senaEstado ? 'selected' : '') + '>' + s + '</option>').join('')}
         </select>
-        <input aria-label="Monto de la seña" data-act="monto" inputmode="numeric" style="width:120px" value="${r.senaMonto}">
+        <label style="font-size:13px;color:var(--muted)">Seña <input aria-label="Monto de la seña" data-act="monto" inputmode="numeric" style="width:100px" value="${r.senaMonto}"></label>
+        <label style="font-size:13px;color:var(--muted)">Total <input aria-label="Precio total de este turno" data-act="precio" inputmode="numeric" style="width:100px" value="${r.precio || ''}"></label>
         <button class="btn small secondary" type="button" data-act="save">Guardar</button>
         ${r.whatsapp ? '<a class="btn small wa" target="_blank" rel="noopener" href="https://wa.me/' + esc(r.whatsapp) + '">WhatsApp</a>' : ''}
         <button class="btn small ghost" type="button" data-act="nota">Nota</button>
@@ -774,10 +795,13 @@ function renderAdmin() {
     </div>`;
   });
   html += adminAvisosHtml() + adminAusenciasHtml();
-  html += `<div class="card" style="margin-top:24px"><h2 style="font-size:19px">Seña por defecto</h2>
-    <label class="f" for="sMonto">Monto para turnos nuevos</label><input class="in" id="sMonto" inputmode="numeric" value="${A.senaMonto}">
+  html += `<div class="card" style="margin-top:24px" id="secPrecios"><h2 style="font-size:19px">Precio de la consulta y seña</h2>
+    <p class="hint" style="margin:0 0 6px">Se aplican a los turnos <b>nuevos</b>. Los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
+    <label class="f" for="pTotal">Precio total de la consulta (lo ven los tutores)</label><input class="in" id="pTotal" inputmode="numeric" value="${A.precioTotal || ''}">
+    <label class="f" for="sMonto">Monto de la seña</label><input class="in" id="sMonto" inputmode="numeric" value="${A.senaMonto}">
+    <p class="hint" id="saldoHint"></p>
     <label class="f" for="sInstr">Instrucciones de pago (las ve el tutor)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
-    <button class="btn secondary" style="margin-top:12px" type="button" id="saveCfg">Guardar seña</button></div>
+    <button class="btn secondary" style="margin-top:12px" type="button" id="saveCfg">Guardar precio y seña</button></div>
     <div class="card"><h2 style="font-size:19px">Compartir la agenda</h2><p class="hint" style="margin:0">Los turnos están en tus calendarios <b>Neurología</b> (neuro) y principal (domicilios) de Google Calendar. Para compartirlos: Google Calendar en la compu → Configuración → el calendario → “Compartir con personas”.</p></div>
     <button class="btn ghost" type="button" id="logout">Salir del panel</button>`;
   app.innerHTML = html;
@@ -787,17 +811,24 @@ function renderAdmin() {
   bindAvisos(); bindAusencias(); bindRte();
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { A.filter = b.dataset.f; renderAdmin(); });
   app.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { A.svc = b.dataset.v; renderAdmin(); });
+  const num = v => Number(String(v || '').replace(/\D/g, ''));
+  const hint = () => { const t = num($('#pTotal').value), sn = num($('#sMonto').value); $('#saldoHint').textContent = t ? 'El tutor verá: total ' + money(t) + ' · seña ' + money(sn) + ' · saldo el día de la consulta ' + money(Math.max(0, t - sn)) + (sn > t ? '  ⚠ la seña es mayor que el total' : '') : ''; };
+  $('#pTotal').oninput = hint; $('#sMonto').oninput = hint; hint();
   $('#saveCfg').onclick = async () => {
-    const r = await api('admin_settings', { senaMonto: $('#sMonto').value, senaInstrucciones: $('#sInstr').value });
+    if (!num($('#pTotal').value)) return toast('Poné el precio total de la consulta');
+    if (num($('#sMonto').value) > num($('#pTotal').value)) return toast('La seña no puede ser mayor que el total');
+    const r = await api('admin_settings', { precioTotal: $('#pTotal').value, senaMonto: $('#sMonto').value, senaInstrucciones: $('#sInstr').value });
     if (!r.ok) return toast(r.error);
-    A.senaMonto = r.senaMonto; A.senaInstr = r.senaInstrucciones; if (S.cfg) S.cfg.senaMonto = r.senaMonto; toast('Seña guardada');
+    A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.senaInstr = r.senaInstrucciones;
+    if (S.cfg) { S.cfg.senaMonto = r.senaMonto; S.cfg.precioTotal = r.precioTotal; }
+    toast('Precio y seña guardados');
   };
   app.querySelectorAll('.adm-item').forEach(it => {
     const id = it.dataset.id, row = A.rows.find(x => x.id === id);
     const q = s => it.querySelector('[data-act="' + s + '"]');
     if (!q('save')) return;
     q('save').onclick = async () => {
-      const r = await api('admin_update', { id: id, senaEstado: q('sena').value, senaMonto: q('monto').value });
+      const r = await api('admin_update', { id: id, senaEstado: q('sena').value, senaMonto: q('monto').value, precio: q('precio') ? q('precio').value : '' });
       if (!r.ok) return toast(r.error);
       Object.assign(row, r.row); renderAdmin(); toast('Guardado (también en Calendar)');
     };
@@ -1032,7 +1063,7 @@ function bindAusencias() {
 
 /* ==================== MODO DEMOSTRACIÓN ==================== */
 const Demo = {
-  db: [], pin: '1234', sena: 35000,
+  db: [], pin: '1234', sena: 35000, precio: 70000,
   avisos: [{ id: 'aviso-vac', v: '1', activo: true, popup: true, estilo: 'importante', titulo: 'Estoy de vacaciones hasta el 25 de octubre', texto: 'Las consultas clínicas y a domicilio las atiende mi colega <b>Luciano Bellotti</b>: podés sacar turno de domicilio normalmente desde esta app.<br>Los turnos de <span style="color:#5b3fa0">Neurología</span> se retoman desde el <span style="background-color:#fff176">lunes 26 de octubre</span>.', desde: '', hasta: '2026-10-25', linkTexto: '', linkUrl: '' }],
   ausencias: [{ id: 'vac', desde: '2026-10-02', hasta: '2026-10-25', motivo: 'Vacaciones', neuro: 'cerrado', domi: 'reemplazo', reemplazo: { nombre: 'Luciano Bellotti', email: '', calendarId: '', desde: '', hasta: '', dias: [1,2,3,4,5] }, senaInstrucciones: '' }],
   aus(ymd) { return this.ausencias.find(a => a.desde <= ymd && ymd <= a.hasta); },
@@ -1066,13 +1097,14 @@ const Demo = {
     const s = new Date(b.inicio), e = new Date(b.fin), hm = x => String(x.getHours()).padStart(2, '0') + ':' + String(x.getMinutes()).padStart(2, '0');
     return Object.assign({}, b, { servicio: b.servicio, ymd: this.ymd(s), hm: hm(s), hmEnd: hm(e), when: labelDate(this.ymd(s)) + ' a las ' + hm(s) + ' h',
       lugar: b.servicio === 'neuro' ? 'CEVET – Montevideo 2620, Rosario' : b.direccion, senaInstrucciones: this.instr,
+      precioTotal: b.precio, saldo: Math.max(0, b.precio - (b.senaEstado === 'no requerida' ? 0 : b.senaMonto)),
       canChange: s.getTime() - Date.now() > 12 * 3600e3, changeHours: 12, gcal: 'https://calendar.google.com/' });
   },
   async handle(p) {
     await new Promise(r => setTimeout(r, 350));
     const km = p.address ? (/c[oó]rdoba|centro|montevideo|pellegrini|oro[nñ]o/i.test(p.address) ? 1.4 : 5.8) : null;
     switch (p.action) {
-      case 'config': { const hoy = this.ymd(new Date()); return { ok: true, senaMonto: this.sena, senaInstrucciones: this.instr, ai: false, avisos: this.avisos.filter(a => a.activo && (!a.desde || a.desde <= hoy) && (!a.hasta || a.hasta >= hoy)) }; }
+      case 'config': { const hoy = this.ymd(new Date()); return { ok: true, senaMonto: this.sena, precioTotal: this.precio, senaInstrucciones: this.instr, ai: false, avisos: this.avisos.filter(a => a.activo && (!a.desde || a.desde <= hoy) && (!a.hasta || a.hasta >= hoy)) }; }
       case 'admin_avisos': this.avisos = p.avisos.map((a, i) => Object.assign({}, a, { id: a.id || 'av' + Date.now() + i, v: String(Date.now()) })); return { ok: true, avisos: this.avisos };
       case 'admin_ausencias': this.ausencias = p.ausencias.map((a, i) => Object.assign({}, a, { id: a.id || 'au' + i })); return { ok: true, ausencias: this.ausencias };
       case 'slots': {
@@ -1086,7 +1118,7 @@ const Demo = {
         const s = new Date(p.start), dur = p.service === 'neuro' ? 40 : (km <= 2 ? 30 : 40);
         const b = { id: 'DEMO-' + (this.db.length + 1), token: 'demo' + Math.random().toString(36).slice(2) + 'xxxxxxxxxxxx', servicio: p.service, estado: 'activo', inicio: s.toISOString(), fin: new Date(s.getTime() + dur * 60000).toISOString(),
           mascota: p.mascota, motivo: p.motivo, nombre: p.nombre, apellido: p.apellido, telefono: p.telefono, whatsapp: '549' + (p.telefono || '').replace(/\D/g, ''), email: p.email,
-          direccion: p.direccion ? p.direccion + (p.detalle ? ' · ' + p.detalle : '') : '', km: km, profesional: (p.service === 'domi' && this.aus(this.ymd(s)) && this.aus(this.ymd(s)).domi === 'reemplazo') ? this.aus(this.ymd(s)).reemplazo.nombre : '', maps: '#', derivadoPor: p.derivadoPor, senaMonto: this.sena, senaEstado: 'pendiente', notas: '' };
+          direccion: p.direccion ? p.direccion + (p.detalle ? ' · ' + p.detalle : '') : '', km: km, profesional: (p.service === 'domi' && this.aus(this.ymd(s)) && this.aus(this.ymd(s)).domi === 'reemplazo') ? this.aus(this.ymd(s)).reemplazo.nombre : '', maps: '#', derivadoPor: p.derivadoPor, senaMonto: this.sena, precio: this.precio, senaEstado: 'pendiente', notas: '' };
         this.db.push(b);
         return { ok: true, token: b.token, booking: this.pub(b) };
       }
@@ -1094,10 +1126,10 @@ const Demo = {
       case 'cancel': { const b = this.db.find(x => x.token === p.token); b.estado = 'cancelado (tutor)'; return { ok: true, booking: this.pub(b) }; }
       case 'reschedule': { const b = this.db.find(x => x.token === p.token); const d = new Date(b.fin) - new Date(b.inicio); b.inicio = p.start; b.fin = new Date(new Date(p.start).getTime() + d).toISOString(); return { ok: true, booking: this.pub(b) }; }
       case 'admin_login': return p.pin === this.pin ? { ok: true } : { ok: false, error: 'PIN incorrecto. (En la demo es 1234)' };
-      case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias } : { ok: false, error: 'PIN incorrecto.' };
-      case 'admin_update': { const b = this.db.find(x => x.id === p.id); if (p.senaEstado) b.senaEstado = p.senaEstado; if (p.senaMonto) b.senaMonto = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.notas !== undefined) b.notas = p.notas; return { ok: true, row: this.pub(b) }; }
+      case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias } : { ok: false, error: 'PIN incorrecto.' };
+      case 'admin_update': { const b = this.db.find(x => x.id === p.id); if (p.senaEstado) b.senaEstado = p.senaEstado; if (p.senaMonto) b.senaMonto = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precio) b.precio = Number(String(p.precio).replace(/\D/g, '')); if (p.notas !== undefined) b.notas = p.notas; return { ok: true, row: this.pub(b) }; }
       case 'admin_cancel': { const b = this.db.find(x => x.id === p.id); b.estado = 'cancelado (Sergio)'; return { ok: true, row: this.pub(b) }; }
-      case 'admin_settings': { if (p.senaMonto) this.sena = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, senaInstrucciones: this.instr }; }
+      case 'admin_settings': { if (p.senaMonto) this.sena = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precioTotal) this.precio = Number(String(p.precioTotal).replace(/\D/g, '')); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, senaInstrucciones: this.instr }; }
       case 'ai': return { ok: false, error: 'El asistente no está activo en la demo.' };
     }
     return { ok: false, error: 'Acción desconocida.' };
