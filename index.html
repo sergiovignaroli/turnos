@@ -174,6 +174,9 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .price-row b{font-size:17px;white-space:nowrap}
 .price-row.sub{border-top:1px dashed var(--line);margin-top:4px;padding-top:8px;color:var(--muted)}
 .price-row.sub b{color:var(--ink)}
+.price-edit{border:2px solid;border-radius:14px;padding:12px 14px;margin:12px 0 0}
+.price-edit h3{margin:0 0 2px;font-size:18px}
+.price-edit .in{background:#fff}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2>div{min-width:0}
 .prof-note{background:#fff4d6;color:#6b4500;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:16px}
@@ -903,18 +906,27 @@ function renderAdmin() {
   html += adminAvisosHtml() + adminAusenciasHtml();
   html += adminExtrasHtml() + adminTextosHtml();
   html += `<div class="card" style="margin-top:24px" id="secPrecios"><h2 style="font-size:19px">Precios de las consultas y señas</h2>
-    <p class="hint" style="margin:0 0 6px">Los ven los tutores en el inicio, antes de confirmar y en el mail. Se aplican a los turnos <b>nuevos</b>; los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
-    <h3 style="margin:14px 0 0;font-size:17px;color:var(--neuro)">Neurología</h3>
-    <div class="grid2"><div><label class="f" for="pNeuro">Precio total</label><input class="in" id="pNeuro" inputmode="numeric" value="${A.precios.neuro.precio}"></div>
-    <div><label class="f" for="sNeuro">Seña</label><input class="in" id="sNeuro" inputmode="numeric" value="${A.precios.neuro.sena}"></div></div>
-    <p class="hint" id="hNeuro"></p>
-    <h3 style="margin:14px 0 0;font-size:17px;color:var(--domi)">Clínica a domicilio</h3>
-    ${A.precios.clinicaPropio === false ? '<div class="note warn" style="margin:6px 0">Todavía no cargaste un precio propio para Clínica: hoy usa el mismo que Neurología. Poné el precio real y guardá.</div>' : ''}
-    <div class="grid2"><div><label class="f" for="pDomi">Precio total</label><input class="in" id="pDomi" inputmode="numeric" value="${A.precios.domi.precio}"></div>
-    <div><label class="f" for="sDomi">Seña</label><input class="in" id="sDomi" inputmode="numeric" value="${A.precios.domi.sena}"></div></div>
-    <p class="hint" id="hDomi"></p>
-    <label class="f" for="sInstr">Instrucciones de pago de la seña (las ve el tutor)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
-    <button class="btn secondary" style="margin-top:12px" type="button" id="saveCfg">Guardar precios y señas</button></div>
+    <p class="hint" style="margin:0 0 10px">Cada servicio tiene su precio y su seña, <b>independientes</b>. El tutor ve los de Neurología solo cuando elige Neurología, y los de Clínica solo cuando elige Clínica. Valen para los turnos <b>nuevos</b>; los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
+    <div class="price-edit" style="border-color:var(--neuro);background:var(--neuro-soft)">
+      <h3 style="color:var(--neuro)">🧠 NEUROLOGÍA</h3>
+      <p class="hint" style="margin:0 0 8px">Consulta neurológica en CEVET.</p>
+      <label class="f" for="pNeuro">Precio total de la consulta</label><input class="in" id="pNeuro" inputmode="numeric" value="${A.precios.neuro.precio}">
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="cNeuro" ${A.precios.neuro.sena > 0 ? 'checked' : ''}> Pedir seña para confirmar el turno</label>
+      <div id="cNeuroBox" ${A.precios.neuro.sena > 0 ? '' : 'hidden'}><label class="f" for="sNeuro">Monto de la seña</label><input class="in" id="sNeuro" inputmode="numeric" value="${A.precios.neuro.sena || ''}"></div>
+      <p class="hint" id="hNeuro" style="margin:8px 0 0"></p>
+    </div>
+    ${A.precios.clinicaPropio === false ? '<div class="note warn" style="margin:10px 0 0">Todavía no cargaste los valores propios de Clínica general: hoy usa los mismos de Neurología. Cargalos abajo y guardá.</div>' : ''}
+    <div class="price-edit" style="border-color:var(--domi);background:var(--domi-soft)">
+      <h3 style="color:var(--domi)">🏠 CLÍNICA GENERAL (a domicilio)</h3>
+      <p class="hint" style="margin:0 0 8px">Consulta clínica a domicilio.</p>
+      <label class="f" for="pDomi">Precio total de la consulta</label><input class="in" id="pDomi" inputmode="numeric" value="${A.precios.domi.precio}">
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="cDomi" ${A.precios.domi.sena > 0 ? 'checked' : ''}> Pedir seña para confirmar el turno</label>
+      <div id="cDomiBox" ${A.precios.domi.sena > 0 ? '' : 'hidden'}><label class="f" for="sDomi">Monto de la seña</label><input class="in" id="sDomi" inputmode="numeric" value="${A.precios.domi.sena || ''}"></div>
+      <p class="hint" id="hDomi" style="margin:8px 0 0"></p>
+    </div>
+    ${S.cfg && S.cfg.senaOpcional ? '' : '<p class="hint">Para poder sacar la seña de un servicio, primero actualizá el servidor (Code.gs) a la última versión.</p>'}
+    <label class="f" for="sInstr">Instrucciones de pago de la seña (las ve el tutor, sirven para los dos servicios)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
+    <button class="btn" style="margin-top:12px" type="button" id="saveCfg">Guardar precios y señas</button></div>
     <div class="card"><h2 style="font-size:19px">Compartir la agenda</h2><p class="hint" style="margin:0">Los turnos están en tus calendarios <b>Neurología</b> (neuro) y principal (domicilios) de Google Calendar. Para compartirlos: Google Calendar en la compu → Configuración → el calendario → “Compartir con personas”.</p></div>
     <div class="card" id="secPin"><h2 style="font-size:19px">🔒 Cambiar el PIN del panel</h2>
       <p class="hint" style="margin:0 0 6px">Elegí uno que no sea fácil de adivinar (evitá 1234, 0000 o tu fecha de nacimiento).</p>
@@ -943,14 +955,29 @@ function renderAdmin() {
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { A.filter = b.dataset.f; renderAdmin(); });
   app.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { A.svc = b.dataset.v; renderAdmin(); });
   const num = v => Number(String(v || '').replace(/\D/g, ''));
-  const hint = (p, sn, h) => { const t = num($(p).value), x = num($(sn).value); $(h).textContent = t ? 'El tutor verá: total ' + money(t) + ' · seña ' + money(x) + ' · saldo el día de la consulta ' + money(Math.max(0, t - x)) + (x > t ? '  ⚠ la seña es mayor que el total' : '') : ''; };
-  const hN = () => hint('#pNeuro', '#sNeuro', '#hNeuro'), hD = () => hint('#pDomi', '#sDomi', '#hDomi');
-  $('#pNeuro').oninput = hN; $('#sNeuro').oninput = hN; $('#pDomi').oninput = hD; $('#sDomi').oninput = hD; hN(); hD();
+  const senaOf = (c, sn) => $(c).checked ? num($(sn).value) : 0;
+  const hint = (p, c, sn, h, nombre) => {
+    const t = num($(p).value), x = senaOf(c, sn);
+    $(h).innerHTML = !t ? '⚠ Poné el precio total.' : '<b>El tutor de ' + nombre + ' verá:</b> total ' + money(t) +
+      ($(c).checked ? (x ? ' · seña ' + money(x) + ' · saldo el día de la consulta ' + money(Math.max(0, t - x)) : '  ⚠ poné el monto de la seña') : ' · sin seña') +
+      (x > t ? '  ⚠ la seña es mayor que el total' : '');
+  };
+  const hN = () => hint('#pNeuro', '#cNeuro', '#sNeuro', '#hNeuro', 'Neurología'), hD = () => hint('#pDomi', '#cDomi', '#sDomi', '#hDomi', 'Clínica');
+  ['#pNeuro', '#sNeuro'].forEach(i => $(i).oninput = hN); ['#pDomi', '#sDomi'].forEach(i => $(i).oninput = hD);
+  const tog = (c, box, h) => { $(c).onchange = () => {
+    if (!$(c).checked && !(S.cfg && S.cfg.senaOpcional)) { $(c).checked = true; return toast('Primero actualizá el servidor para poder sacar la seña'); }
+    $(box).hidden = !$(c).checked; h(); }; };
+  tog('#cNeuro', '#cNeuroBox', hN); tog('#cDomi', '#cDomiBox', hD); hN(); hD();
   $('#saveCfg').onclick = async () => {
-    if (!num($('#pNeuro').value) || !num($('#pDomi').value)) return toast('Poné el precio total de las dos consultas');
-    if (num($('#sNeuro').value) > num($('#pNeuro').value) || num($('#sDomi').value) > num($('#pDomi').value)) return toast('La seña no puede ser mayor que el total');
-    const r = await api('admin_settings', { precioNeuro: $('#pNeuro').value, senaNeuro: $('#sNeuro').value, precioDomi: $('#pDomi').value, senaDomi: $('#sDomi').value, senaInstrucciones: $('#sInstr').value });
+    const pN = num($('#pNeuro').value), pD = num($('#pDomi').value), sN = senaOf('#cNeuro', '#sNeuro'), sD = senaOf('#cDomi', '#sDomi');
+    if (!pN || !pD) return toast('Poné el precio total de las dos consultas');
+    if (($('#cNeuro').checked && !sN) || ($('#cDomi').checked && !sD)) return toast('Poné el monto de la seña, o destildá "Pedir seña"');
+    if (sN > pN) return toast('Neurología: la seña es mayor que el total');
+    if (sD > pD) return toast('Clínica: la seña es mayor que el total');
+    const r = await api('admin_settings', { precioNeuro: String(pN), senaNeuro: String(sN), precioDomi: String(pD), senaDomi: String(sD), senaInstrucciones: $('#sInstr').value });
     if (!r.ok) return toast(r.error);
+    if (!r.precios || r.precios.domi.precio !== pD || r.precios.neuro.precio !== pN || r.precios.domi.sena !== sD || r.precios.neuro.sena !== sN)
+      return toast('⚠ El servidor no guardó todo. Actualizá el Code.gs a la última versión.');
     A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.precios = r.precios; A.senaInstr = r.senaInstrucciones;
     if (S.cfg) { S.cfg.senaMonto = r.senaMonto; S.cfg.precioTotal = r.precioTotal; S.cfg.precios = r.precios; }
     renderAdmin(); location.hash = 'secPrecios'; toast('Precios y señas guardados');
@@ -1330,7 +1357,7 @@ const Demo = {
     await new Promise(r => setTimeout(r, 350));
     const km = p.address ? (/c[oó]rdoba|centro|montevideo|pellegrini|oro[nñ]o/i.test(p.address) ? 1.4 : 5.8) : null;
     switch (p.action) {
-      case 'config': { const hoy = this.ymd(new Date()); return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), textos: this.textosApp(), senaInstrucciones: this.instr, ai: false, avisos: this.avisos.filter(a => a.activo && (!a.desde || a.desde <= hoy) && (!a.hasta || a.hasta >= hoy)) }; }
+      case 'config': { const hoy = this.ymd(new Date()); return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaOpcional: true, textos: this.textosApp(), senaInstrucciones: this.instr, ai: false, avisos: this.avisos.filter(a => a.activo && (!a.desde || a.desde <= hoy) && (!a.hasta || a.hasta >= hoy)) }; }
       case 'admin_avisos': this.avisos = p.avisos.map((a, i) => Object.assign({}, a, { id: a.id || 'av' + Date.now() + i, v: String(Date.now()) })); return { ok: true, avisos: this.avisos };
       case 'admin_ausencias': this.ausencias = p.ausencias.map((a, i) => Object.assign({}, a, { id: a.id || 'au' + i })); return { ok: true, ausencias: this.ausencias };
       case 'slots': {
@@ -1344,7 +1371,7 @@ const Demo = {
         const s = new Date(p.start), dur = p.service === 'neuro' ? 40 : (km <= 2 ? 30 : 40);
         const b = { id: 'DEMO-' + (this.db.length + 1), token: 'demo' + Math.random().toString(36).slice(2) + 'xxxxxxxxxxxx', servicio: p.service, estado: 'activo', inicio: s.toISOString(), fin: new Date(s.getTime() + dur * 60000).toISOString(),
           mascota: p.mascota, motivo: p.motivo, nombre: p.nombre, apellido: p.apellido, telefono: p.telefono, whatsapp: '549' + (p.telefono || '').replace(/\D/g, ''), email: p.email,
-          direccion: p.direccion ? p.direccion + (p.detalle ? ' · ' + p.detalle : '') : '', km: km, profesional: (p.service === 'domi' && this.aus(this.ymd(s)) && this.aus(this.ymd(s)).domi === 'reemplazo') ? this.aus(this.ymd(s)).reemplazo.nombre : '', maps: '#', derivadoPor: p.derivadoPor, senaMonto: this.precios()[p.service].sena, precio: this.precios()[p.service].precio, senaEstado: 'pendiente', notas: '' };
+          direccion: p.direccion ? p.direccion + (p.detalle ? ' · ' + p.detalle : '') : '', km: km, profesional: (p.service === 'domi' && this.aus(this.ymd(s)) && this.aus(this.ymd(s)).domi === 'reemplazo') ? this.aus(this.ymd(s)).reemplazo.nombre : '', maps: '#', derivadoPor: p.derivadoPor, senaMonto: this.precios()[p.service].sena, precio: this.precios()[p.service].precio, senaEstado: this.precios()[p.service].sena > 0 ? 'pendiente' : 'no requerida', notas: '' };
         this.db.push(b);
         return { ok: true, token: b.token, booking: this.pub(b) };
       }
@@ -1355,7 +1382,7 @@ const Demo = {
       case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias, extras: this.extras, textos: this.textos, textosMail: ['mail_confirmacion', 'mail_recordatorio', 'mail_pie'] } : { ok: false, error: 'PIN incorrecto.' };
       case 'admin_update': { const b = this.db.find(x => x.id === p.id); if (p.senaEstado) b.senaEstado = p.senaEstado; if (p.senaMonto) b.senaMonto = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precio) b.precio = Number(String(p.precio).replace(/\D/g, '')); if (p.notas !== undefined) b.notas = p.notas; return { ok: true, row: this.pub(b) }; }
       case 'admin_cancel': { const b = this.db.find(x => x.id === p.id); b.estado = 'cancelado (Sergio)'; return { ok: true, row: this.pub(b) }; }
-      case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro) this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi) this.senaD = n(p.senaDomi); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
+      case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro !== undefined && p.senaNeuro !== '') this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi !== undefined && p.senaDomi !== '') this.senaD = n(p.senaDomi); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
       case 'admin_extras': this.extras = p.extras.map((x, i) => Object.assign({}, x, { id: x.id || 'ex' + i })); return { ok: true, extras: this.extras };
       case 'admin_textos': this.textos = p.textos; return { ok: true, textos: this.textos };
       case 'admin_pin': if (p.pin !== this.pin) return { ok: false, error: 'PIN incorrecto.' }; if (p.actual !== this.pin) return { ok: false, error: 'El PIN actual no es correcto.' }; if (p.nuevo !== p.repetir) return { ok: false, error: 'El PIN nuevo y su repetición no coinciden.' }; this.pin = p.nuevo; return { ok: true };
