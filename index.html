@@ -66,6 +66,7 @@ p.lead{color:var(--muted);margin:0 0 18px}
 .choice.domi .ic{background:var(--domi-soft);color:var(--domi)}
 .choice b{display:block;font-size:21px;color:var(--ink)}
 .choice span{color:var(--muted);font-size:16px}
+.choice .price-chip{display:inline-block;margin-top:4px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:14px;border-radius:999px;padding:2px 10px}
 .choice .arrow{margin-left:auto;font-size:28px;color:var(--muted)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:14px 20px;font-weight:700;font-size:18px;min-height:56px;cursor:pointer;text-decoration:none;background:var(--brand);color:#fff;width:100%}
 .btn:disabled{opacity:.55;cursor:not-allowed}
@@ -173,6 +174,8 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .price-row b{font-size:17px;white-space:nowrap}
 .price-row.sub{border-top:1px dashed var(--line);margin-top:4px;padding-top:8px;color:var(--muted)}
 .price-row.sub b{color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2>div{min-width:0}
 .prof-note{background:#fff4d6;color:#6b4500;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:16px}
 .adm-sec{margin-top:24px}
 .adm-sec h2{display:flex;align-items:center;gap:8px}
@@ -313,6 +316,56 @@ const money = n => '$' + Number(n || 0).toLocaleString('es-AR');
 const ymdParts = ymd => ymd.split('-').map(Number);
 const dowOfYmd = ymd => { const [y,m,d] = ymdParts(ymd); return new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay(); };
 const labelDate = ymd => { const [, m, d] = ymdParts(ymd); const s = DIAS[dowOfYmd(ymd)]; return s[0].toUpperCase() + s.slice(1) + ' ' + d + ' de ' + MESES[m - 1]; };
+/* ===== TEXTOS EDITABLES (los cambia Sergio desde el panel) ===== */
+const DEFAULT_TEXTS = {
+  home_titulo: 'Sacá tu turno',
+  home_sub: '¿Qué necesita tu mascota?',
+  neuro_titulo: 'Neurología',
+  neuro_desc: 'Consulta en CEVET · Montevideo 2620',
+  domi_titulo: 'Clínica a domicilio',
+  domi_desc: 'Vamos a tu casa, en Rosario',
+  urgencia: '**¿Es una urgencia?** (convulsión que no para, le cuesta respirar, un golpe fuerte, se intoxicó) No esperes un turno: andá a una guardia veterinaria 24 h y escribinos por WhatsApp.',
+  mis_turnos_btn: '¿Ya tenés turno? Ver, cambiar o cancelar',
+  domi_pregunta: '¿Dónde vamos?',
+  domi_pregunta_sub: 'Escribí la dirección donde está tu mascota.',
+  dia_titulo: 'Elegí día y horario',
+  datos_titulo: 'Tus datos',
+  sena_nota: 'Para confirmar el turno se pide una seña de {seña}. Al terminar te mostramos cómo pagarla.',
+  reemplazo_nota: 'Este día la visita la hace **{profesional}**, colega de confianza del Dr. Vignaroli.',
+  sin_turnos: 'No hay horarios libres en las próximas semanas.',
+  fin_titulo: '¡Turno reservado!',
+  fin_neuro: 'Te esperamos en CEVET.',
+  fin_domi: 'Te esperamos con la mascota en casa.',
+  cancelar_aviso: 'Si pagaste seña, escribinos por WhatsApp.'
+};
+const TEXT_LABELS = {
+  home_titulo: 'Inicio · título', home_sub: 'Inicio · subtítulo',
+  neuro_titulo: 'Botón Neurología · título', neuro_desc: 'Botón Neurología · descripción',
+  domi_titulo: 'Botón Clínica · título', domi_desc: 'Botón Clínica · descripción',
+  urgencia: 'Inicio · cartel de urgencias', mis_turnos_btn: 'Inicio · botón "Mis turnos"',
+  domi_pregunta: 'Domicilio · título de la dirección', domi_pregunta_sub: 'Domicilio · explicación de la dirección',
+  dia_titulo: 'Título de "elegí día y horario"', datos_titulo: 'Título del formulario',
+  sena_nota: 'Nota de la seña ({seña} = monto)', reemplazo_nota: 'Nota del reemplazo ({profesional} = nombre)',
+  sin_turnos: 'Cuando no hay horarios', fin_titulo: 'Turno reservado · título',
+  fin_neuro: 'Turno reservado · Neurología', fin_domi: 'Turno reservado · Domicilio',
+  cancelar_aviso: 'Al cancelar · aviso',
+  mail_confirmacion: 'Mail de confirmación · texto extra', mail_recordatorio: 'Mail de recordatorio · texto extra',
+  mail_pie: 'Todos los mails · texto al pie'
+};
+/** Texto (editado por Sergio o el original). **así** = negrita. {seña}/{profesional} se reemplazan. */
+function T(k, vars) {
+  const ov = (S && S.cfg && S.cfg.textos) || {};
+  let t = esc(ov[k] || DEFAULT_TEXTS[k] || '');
+  t = t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+  Object.keys(vars || {}).forEach(v => { t = t.split('{' + v + '}').join(vars[v]); });
+  return t;
+}
+/* Turnos guardados en este celular/compu, para que el tutor los encuentre sin el mail. */
+function misTokens() { try { return JSON.parse(localStorage.getItem('misTurnos') || '[]'); } catch (e) { return []; } }
+function guardarToken(t) { try { const l = misTokens().filter(x => x !== t); l.unshift(t); localStorage.setItem('misTurnos', JSON.stringify(l.slice(0, 10))); } catch (e) {} }
+function olvidarToken(t) { try { localStorage.setItem('misTurnos', JSON.stringify(misTokens().filter(x => x !== t))); } catch (e) {} }
+function precioDe(svc) { const p = S.cfg && S.cfg.precios && S.cfg.precios[svc]; return p ? p : { precio: (S.cfg && S.cfg.precioTotal) || 0, sena: (S.cfg && S.cfg.senaMonto) || 0 }; }
+
 function store(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 2600); }
 async function copy(text) {
@@ -365,20 +418,22 @@ function viewHome() {
   S.isHome = true;
   S.service = null; S.slot = null; S.geo = null; S.token = null;
   app.innerHTML = `
-    <h1>Sacá tu turno</h1>
-    <p class="lead">${S.adminBooking ? '<b>Modo Sergio:</b> estás cargando un turno a nombre de un tutor.' : '¿Qué necesita tu mascota?'}</p>
+    <h1>${T('home_titulo')}</h1>
+    <p class="lead">${S.adminBooking ? '<b>Modo Sergio:</b> estás cargando un turno a nombre de un tutor.' : T('home_sub')}</p>
     <button class="choice neuro" type="button" data-svc="neuro">
       <span class="ic"><img src="icons/logo-neuro.png" alt=""></span>
-      <span><b>Neurología</b><span>Consulta en CEVET · Montevideo 2620</span></span>
+      <span><b>${T('neuro_titulo')}</b><span>${T('neuro_desc')}</span>${precioDe('neuro').precio ? '<span class="price-chip">Consulta ' + money(precioDe('neuro').precio) + '</span>' : ''}</span>
       <span class="arrow" aria-hidden="true">›</span>
     </button>
     <button class="choice domi" type="button" data-svc="domi">
       <span class="ic"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span>
-      <span><b>Clínica a domicilio</b><span>Vamos a tu casa, en Rosario</span></span>
+      <span><b>${T('domi_titulo')}</b><span>${T('domi_desc')}</span>${precioDe('domi').precio ? '<span class="price-chip">Consulta ' + money(precioDe('domi').precio) + '</span>' : ''}</span>
       <span class="arrow" aria-hidden="true">›</span>
     </button>
-    <div class="note warn"><b>¿Es una urgencia?</b> (convulsión que no para, le cuesta respirar, un golpe fuerte, se intoxicó) No esperes un turno: andá a una guardia veterinaria 24 h y escribinos por WhatsApp.</div>
+    ${S.adminBooking ? '' : '<button class="btn ghost" type="button" id="misBtn" style="margin:0 0 14px">' + T('mis_turnos_btn') + '</button>'}
+    <div class="note warn">${T('urgencia')}</div>
     ${S.adminBooking ? '<button class="btn ghost" type="button" id="toAdmin">Volver al panel</button>' : ''}`;
+  const mb = $('#misBtn'); if (mb) mb.onclick = viewMisTurnos;
   app.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => { S.service = b.dataset.svc; S.service === 'domi' ? viewAddress() : loadSlots(); });
   const ta = $('#toAdmin'); if (ta) ta.onclick = () => { S.adminBooking = false; viewAdmin(); };
   scrollTop();
@@ -388,8 +443,8 @@ function viewAddress(errMsg) {
   app.innerHTML = `
     <button class="back" type="button" id="back">‹ Volver</button>
     ${stepsBar(1, 4)}
-    <h1>¿Dónde vamos?</h1>
-    <p class="lead">Escribí la dirección donde está tu mascota.</p>
+    <h1>${T('domi_pregunta')}</h1>
+    <p class="lead">${T('domi_pregunta_sub')}</p>
     <form id="addrForm" class="card" novalidate>
       <label class="f" for="addr">Calle y número</label>
       <input class="in ${errMsg ? 'err' : ''}" id="addr" name="addr" autocomplete="street-address" placeholder="Ej: Córdoba 1520" value="${esc(S.address)}" required>
@@ -435,7 +490,7 @@ function viewSlots(msg) {
   }
   let body;
   if (!S.days.length) {
-    body = `<div class="card center"><p><b>No hay horarios libres en las próximas semanas.</b></p><p class="hint">Escribinos por WhatsApp y te buscamos un lugar.</p><a class="btn wa" href="${waLink('Hola, quiero un turno de ' + svcLbl + ' y no encontré horarios en la app.')}" target="_blank" rel="noopener">Escribir por WhatsApp</a></div>`;
+    body = `<div class="card center"><p><b>${T('sin_turnos')}</b></p><p class="hint">Escribinos por WhatsApp y te buscamos un lugar.</p><a class="btn wa" href="${waLink('Hola, quiero un turno de ' + svcLbl + ' y no encontré horarios en la app.')}" target="_blank" rel="noopener">Escribir por WhatsApp</a></div>`;
   } else {
     const d = S.days[S.dayIdx];
     const dayBtns = S.days.map((x, i) => {
@@ -447,14 +502,14 @@ function viewSlots(msg) {
       <h2 style="font-size:19px;margin:6px 0 8px">1. Tocá un día</h2>
       <div class="days" id="days" role="group" aria-label="Días disponibles">${dayBtns}</div>
       <h2 style="font-size:19px;margin:6px 0 8px">2. Tocá un horario · <span style="font-weight:600">${esc(labelDate(d.date))}</span></h2>
-      ${d.prof ? '<div class="prof-note">Este día la visita la hace <b>' + esc(d.prof) + '</b>, colega de confianza del Dr. Vignaroli.</div>' : ''}
+      ${d.prof ? '<div class="prof-note">' + T('reemplazo_nota', { profesional: esc(d.prof) }) + '</div>' : ''}
       <div class="slots">${slotBtns}</div>
       ${S.service === 'neuro' && !S.adminBooking ? '<p class="hint" style="margin-top:12px">Se muestran los próximos horarios que se van liberando en la agenda.</p>' : ''}`;
   }
   app.innerHTML = `
     <button class="back" type="button" id="back">‹ Volver</button>
     ${resched ? '' : stepsBar(S.service === 'domi' ? 2 : 1, S.service === 'domi' ? 4 : 3)}
-    <h1>${resched ? 'Elegí el nuevo horario' : 'Elegí día y horario'}</h1>
+    <h1>${resched ? 'Elegí el nuevo horario' : T('dia_titulo')}</h1>
     <p class="lead"><span class="tag ${S.service}">${svcLbl}</span>${S.service === 'domi' && S.duration ? ' · visitas de ' + S.duration + ' min' : ''}</p>
     ${msg ? '<div class="note bad">' + esc(msg) + '</div>' : ''}
     ${geoNote}${body}`;
@@ -483,7 +538,7 @@ function viewForm(errMsg, errFields) {
   app.innerHTML = `
     <button class="back" type="button" id="back">‹ Cambiar horario</button>
     ${stepsBar(neuro ? 2 : 3, neuro ? 3 : 4)}
-    <h1>Tus datos</h1>
+    <h1>${T('datos_titulo')}</h1>
     <div class="note info"><b>${esc(labelDate(S.slotYmd))} · ${S.slot.hm} h</b><br>${neuro ? 'Neurología en CEVET – Montevideo 2620' : 'Clínica a domicilio – ' + esc(S.address)}${S.slotProf ? '<br>Te atiende: <b>' + esc(S.slotProf) + '</b>' : ''}</div>
     ${errMsg ? '<div class="note bad" id="formErr">' + esc(errMsg) + '</div>' : ''}
     <form id="dataForm" class="card" novalidate>
@@ -501,8 +556,8 @@ function viewForm(errMsg, errFields) {
         <div class="copybox"><span>${esc(S.address)}</span><button type="button" class="btn small ghost" id="chgAddr">Cambiar</button></div>
         ${field('detalle', 'Piso, depto, timbre o referencias', { max: 120, ph: 'Ej: 3° B, timbre que no anda' })}`}
       <input class="hp" tabindex="-1" autocomplete="off" name="website" id="f_website" aria-hidden="true">
-      ${priceBlock(S.cfg && S.cfg.precioTotal, S.cfg && S.cfg.senaMonto, 'pendiente')}
-      <div class="note warn" style="margin-top:8px">Para confirmar el turno se pide una seña de <b>${money(S.cfg ? S.cfg.senaMonto : 0)}</b>. Al terminar te mostramos cómo pagarla.</div>
+      ${priceBlock(precioDe(S.service).precio, precioDe(S.service).sena, 'pendiente')}
+      ${precioDe(S.service).sena ? '<div class="note warn" style="margin-top:8px">' + T('sena_nota', { 'seña': '<b>' + money(precioDe(S.service).sena) + '</b>' }) + '</div>' : ''}
       <button class="btn" type="submit" id="okBtn" style="margin-top:8px">Confirmar turno</button>
     </form>`;
   $('#back').onclick = () => viewSlots();
@@ -541,6 +596,7 @@ async function submitBooking() {
     return viewForm(r.error);
   }
   S.bookNonce = null; S.booking = r.booking; S.token = r.token;
+  if (!S.adminBooking) guardarToken(r.token);
   viewDone(true);
 }
 
@@ -568,8 +624,8 @@ function viewDone(fresh) {
   app.innerHTML = `
     <div class="center">
       <div class="big-ok"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
-      <h1>${fresh ? '¡Turno reservado!' : 'Turno actualizado'}</h1>
-      <p class="lead">${b.servicio === 'domi' ? 'Te esperamos con la mascota en casa.' : 'Te esperamos en CEVET.'}</p>
+      <h1>${fresh ? T('fin_titulo') : 'Turno actualizado'}</h1>
+      <p class="lead">${b.servicio === 'domi' ? T('fin_domi') : T('fin_neuro')}</p>
     </div>
     <div class="card">
       <dl class="summary">
@@ -619,6 +675,7 @@ async function openManage(token) {
   const r = await api('get', { token: token });
   if (!r.ok) return viewError(r.error, () => openManage(token), true);
   S.booking = r.booking; S.service = r.booking.servicio;
+  if (r.booking.estado === 'activo') guardarToken(token); else olvidarToken(token);
   viewManage();
 }
 
@@ -628,6 +685,7 @@ function viewManage(msg) {
   const stTag = active ? '<span class="tag paid">Confirmado</span>' : '<span class="tag cxl">Cancelado</span>';
   const sena = b.senaEstado === 'pagada' ? '<span class="tag paid">Seña pagada</span>' : b.senaEstado === 'pendiente' ? '<span class="tag pend">Seña pendiente ' + money(b.senaMonto) + '</span>' : '';
   app.innerHTML = `
+    <button class="back" type="button" id="backMis">‹ Mis turnos</button>
     <h1>Mi turno</h1>
     <p class="lead">${stTag} ${active ? sena : ''}</p>
     ${msg ? '<div class="note ' + (msg.ok ? 'ok' : 'bad') + '">' + esc(msg.t) + '</div>' : ''}
@@ -652,14 +710,60 @@ function viewManage(msg) {
       : `<div class="note warn">Faltan menos de ${b.changeHours} horas para el turno. Para cambiarlo o cancelarlo escribinos por WhatsApp.</div>
          <a class="btn wa" target="_blank" rel="noopener" href="${waLink('Hola, necesito cambiar el turno de ' + b.mascota + ' (' + b.when + ').')}">Escribir por WhatsApp</a>`)
     : '<button class="btn" type="button" id="newBtn">Sacar un turno nuevo</button>'}`;
+  $('#backMis').onclick = () => viewMisTurnos();
   const re = $('#reBtn'); if (re) re.onclick = () => loadSlots();
-  const cx = $('#cxBtn'); if (cx) cx.onclick = () => ask('¿Cancelar el turno?', 'Se libera el horario del ' + labelDate(b.ymd) + ' a las ' + b.hm + ' h. Si pagaste seña, escribinos por WhatsApp.', 'Sí, cancelar', async () => {
+  const cx = $('#cxBtn'); if (cx) cx.onclick = () => ask('¿Cancelar el turno?', 'Se libera el horario del ' + labelDate(b.ymd) + ' a las ' + b.hm + ' h. ' + (S.cfg && S.cfg.textos && S.cfg.textos.cancelar_aviso || DEFAULT_TEXTS.cancelar_aviso), 'Sí, cancelar', async () => {
     loading('Cancelando…');
     const r = await api('cancel', { token: S.token });
     if (!r.ok) return viewManage({ t: r.error });
-    S.booking = r.booking; viewManage({ ok: true, t: 'Turno cancelado. Te mandamos un mail de confirmación.' });
+    S.booking = r.booking; olvidarToken(S.token); viewManage({ ok: true, t: 'Turno cancelado. El horario quedó libre.' });
   });
   const nb = $('#newBtn'); if (nb) nb.onclick = () => { history.replaceState(null, '', location.pathname); S.token = null; viewHome(); };
+  scrollTop();
+}
+
+/* ==================== MIS TURNOS (desde la app, sin el mail) ==================== */
+async function viewMisTurnos(msg) {
+  history.replaceState(null, '', location.pathname);
+  loading('Buscando tus turnos…');
+  const guardados = [];
+  for (const t of misTokens()) {
+    const r = await api('get', { token: t });
+    if (r.ok && r.booking.estado === 'activo' && new Date(r.booking.fin).getTime() > Date.now()) guardados.push({ token: t, b: r.booking });
+    else if (r.ok || r.code !== 'NET') olvidarToken(t);
+  }
+  const item = (t, when, svc, masc) => `<button class="choice ${svc}" type="button" data-tk="${esc(t)}" style="min-height:72px">
+      <span><b style="font-size:18px">${esc(when)}</b><span>${svc === 'neuro' ? 'Neurología' : 'Clínica a domicilio'} · ${esc(masc)}</span></span><span class="arrow" aria-hidden="true">›</span></button>`;
+  app.innerHTML = `
+    <button class="back" type="button" id="back">‹ Volver</button>
+    <h1>Mis turnos</h1>
+    <p class="lead">Tocá un turno para verlo, cambiarlo o cancelarlo.</p>
+    ${msg ? '<div class="note bad">' + esc(msg) + '</div>' : ''}
+    ${guardados.length ? '<h2 style="font-size:18px">Guardados en este teléfono</h2>' + guardados.map(g => item(g.token, g.b.when, g.b.servicio, g.b.mascota)).join('') : ''}
+    <div id="found"></div>
+    <form class="card" id="lkForm" novalidate>
+      <h2 style="font-size:18px">${guardados.length ? '¿No está tu turno? Buscalo' : 'Buscá tu turno'}</h2>
+      <label class="f" for="lkTel">Teléfono con el que sacaste el turno</label>
+      <input class="in" id="lkTel" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej: 341 555-1234">
+      <label class="f" for="lkMasc">Nombre de la mascota</label>
+      <input class="in" id="lkMasc" autocomplete="off" placeholder="Ej: Toby">
+      <button class="btn" style="margin-top:14px" type="submit">Buscar</button>
+    </form>`;
+  $('#back').onclick = viewHome;
+  const bindItems = () => app.querySelectorAll('[data-tk]').forEach(b => b.onclick = () => { history.replaceState(null, '', location.pathname + '?t=' + b.dataset.tk); openManage(b.dataset.tk); });
+  bindItems();
+  $('#lkForm').onsubmit = async e => {
+    e.preventDefault();
+    const tel = $('#lkTel').value.trim(), masc = $('#lkMasc').value.trim();
+    if (tel.replace(/\D/g, '').length < 8 || !masc) { $('#found').innerHTML = '<div class="note bad">Escribí tu teléfono y el nombre de tu mascota.</div>'; return; }
+    $('#found').innerHTML = '<div class="spinner"></div>';
+    const r = await api('lookup', { telefono: tel, mascota: masc });
+    if (!r.ok) { $('#found').innerHTML = '<div class="note bad">' + esc(r.error) + '</div>'; return; }
+    if (!r.turnos.length) { $('#found').innerHTML = '<div class="note warn">No encontramos turnos activos con esos datos. Revisá cómo escribiste el nombre de la mascota, o escribinos por WhatsApp.</div>'; return; }
+    r.turnos.forEach(t => guardarToken(t.token));
+    $('#found').innerHTML = '<h2 style="font-size:18px">Encontramos ' + (r.turnos.length === 1 ? 'tu turno' : r.turnos.length + ' turnos') + '</h2>' + r.turnos.map(t => item(t.token, t.when, t.servicio, t.mascota)).join('');
+    bindItems();
+  };
   scrollTop();
 }
 
@@ -736,6 +840,8 @@ async function viewAdmin() {
   const r = await api('admin_list', {});
   if (!r.ok) { if (/PIN/i.test(r.error || '')) { S.pin = ''; store('pin', null); return viewAdminLogin(r.error); } return viewError(r.error, viewAdmin); }
   A.rows = r.rows; A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.senaInstr = r.senaInstrucciones;
+  A.precios = r.precios || { neuro: { precio: r.precioTotal, sena: r.senaMonto }, domi: { precio: r.precioTotal, sena: r.senaMonto } };
+  A.extras = r.extras || []; A.textos = r.textos || {}; A.textosMail = r.textosMail || [];
   A.avisos = r.avisos || []; A.ausencias = r.ausencias || [];
   renderAdmin();
 }
@@ -752,7 +858,7 @@ function renderAdmin() {
       <button class="btn" type="button" id="newT">+ Cargar turno</button>
       <button class="btn secondary" type="button" id="reload">Actualizar</button>
     </div>
-    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precio y seña</a></div>
+    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precios y señas</a><a class="btn small ghost" href="#secDias">Agregar / sacar días</a><a class="btn small ghost" href="#secTextos">Textos</a></div>
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Filtro">
         <button type="button" data-f="proximos" class="${A.filter === 'proximos' ? 'on' : ''}">Próximos</button>
@@ -795,33 +901,41 @@ function renderAdmin() {
     </div>`;
   });
   html += adminAvisosHtml() + adminAusenciasHtml();
-  html += `<div class="card" style="margin-top:24px" id="secPrecios"><h2 style="font-size:19px">Precio de la consulta y seña</h2>
-    <p class="hint" style="margin:0 0 6px">Se aplican a los turnos <b>nuevos</b>. Los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
-    <label class="f" for="pTotal">Precio total de la consulta (lo ven los tutores)</label><input class="in" id="pTotal" inputmode="numeric" value="${A.precioTotal || ''}">
-    <label class="f" for="sMonto">Monto de la seña</label><input class="in" id="sMonto" inputmode="numeric" value="${A.senaMonto}">
-    <p class="hint" id="saldoHint"></p>
-    <label class="f" for="sInstr">Instrucciones de pago (las ve el tutor)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
-    <button class="btn secondary" style="margin-top:12px" type="button" id="saveCfg">Guardar precio y seña</button></div>
+  html += adminExtrasHtml() + adminTextosHtml();
+  html += `<div class="card" style="margin-top:24px" id="secPrecios"><h2 style="font-size:19px">Precios de las consultas y señas</h2>
+    <p class="hint" style="margin:0 0 6px">Los ven los tutores en el inicio, antes de confirmar y en el mail. Se aplican a los turnos <b>nuevos</b>; los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
+    <h3 style="margin:14px 0 0;font-size:17px;color:var(--neuro)">Neurología</h3>
+    <div class="grid2"><div><label class="f" for="pNeuro">Precio total</label><input class="in" id="pNeuro" inputmode="numeric" value="${A.precios.neuro.precio}"></div>
+    <div><label class="f" for="sNeuro">Seña</label><input class="in" id="sNeuro" inputmode="numeric" value="${A.precios.neuro.sena}"></div></div>
+    <p class="hint" id="hNeuro"></p>
+    <h3 style="margin:14px 0 0;font-size:17px;color:var(--domi)">Clínica a domicilio</h3>
+    ${A.precios.clinicaPropio === false ? '<div class="note warn" style="margin:6px 0">Todavía no cargaste un precio propio para Clínica: hoy usa el mismo que Neurología. Poné el precio real y guardá.</div>' : ''}
+    <div class="grid2"><div><label class="f" for="pDomi">Precio total</label><input class="in" id="pDomi" inputmode="numeric" value="${A.precios.domi.precio}"></div>
+    <div><label class="f" for="sDomi">Seña</label><input class="in" id="sDomi" inputmode="numeric" value="${A.precios.domi.sena}"></div></div>
+    <p class="hint" id="hDomi"></p>
+    <label class="f" for="sInstr">Instrucciones de pago de la seña (las ve el tutor)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
+    <button class="btn secondary" style="margin-top:12px" type="button" id="saveCfg">Guardar precios y señas</button></div>
     <div class="card"><h2 style="font-size:19px">Compartir la agenda</h2><p class="hint" style="margin:0">Los turnos están en tus calendarios <b>Neurología</b> (neuro) y principal (domicilios) de Google Calendar. Para compartirlos: Google Calendar en la compu → Configuración → el calendario → “Compartir con personas”.</p></div>
     <button class="btn ghost" type="button" id="logout">Salir del panel</button>`;
   app.innerHTML = html;
   $('#newT').onclick = () => { S.adminBooking = true; S.form = {}; viewHome(); };
   $('#reload').onclick = viewAdmin;
   $('#logout').onclick = () => { S.pin = ''; store('pin', null); viewAdminLogin(); };
-  bindAvisos(); bindAusencias(); bindRte();
+  bindAvisos(); bindAusencias(); bindRte(); bindExtras(); bindTextos();
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { A.filter = b.dataset.f; renderAdmin(); });
   app.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { A.svc = b.dataset.v; renderAdmin(); });
   const num = v => Number(String(v || '').replace(/\D/g, ''));
-  const hint = () => { const t = num($('#pTotal').value), sn = num($('#sMonto').value); $('#saldoHint').textContent = t ? 'El tutor verá: total ' + money(t) + ' · seña ' + money(sn) + ' · saldo el día de la consulta ' + money(Math.max(0, t - sn)) + (sn > t ? '  ⚠ la seña es mayor que el total' : '') : ''; };
-  $('#pTotal').oninput = hint; $('#sMonto').oninput = hint; hint();
+  const hint = (p, sn, h) => { const t = num($(p).value), x = num($(sn).value); $(h).textContent = t ? 'El tutor verá: total ' + money(t) + ' · seña ' + money(x) + ' · saldo el día de la consulta ' + money(Math.max(0, t - x)) + (x > t ? '  ⚠ la seña es mayor que el total' : '') : ''; };
+  const hN = () => hint('#pNeuro', '#sNeuro', '#hNeuro'), hD = () => hint('#pDomi', '#sDomi', '#hDomi');
+  $('#pNeuro').oninput = hN; $('#sNeuro').oninput = hN; $('#pDomi').oninput = hD; $('#sDomi').oninput = hD; hN(); hD();
   $('#saveCfg').onclick = async () => {
-    if (!num($('#pTotal').value)) return toast('Poné el precio total de la consulta');
-    if (num($('#sMonto').value) > num($('#pTotal').value)) return toast('La seña no puede ser mayor que el total');
-    const r = await api('admin_settings', { precioTotal: $('#pTotal').value, senaMonto: $('#sMonto').value, senaInstrucciones: $('#sInstr').value });
+    if (!num($('#pNeuro').value) || !num($('#pDomi').value)) return toast('Poné el precio total de las dos consultas');
+    if (num($('#sNeuro').value) > num($('#pNeuro').value) || num($('#sDomi').value) > num($('#pDomi').value)) return toast('La seña no puede ser mayor que el total');
+    const r = await api('admin_settings', { precioNeuro: $('#pNeuro').value, senaNeuro: $('#sNeuro').value, precioDomi: $('#pDomi').value, senaDomi: $('#sDomi').value, senaInstrucciones: $('#sInstr').value });
     if (!r.ok) return toast(r.error);
-    A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.senaInstr = r.senaInstrucciones;
-    if (S.cfg) { S.cfg.senaMonto = r.senaMonto; S.cfg.precioTotal = r.precioTotal; }
-    toast('Precio y seña guardados');
+    A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.precios = r.precios; A.senaInstr = r.senaInstrucciones;
+    if (S.cfg) { S.cfg.senaMonto = r.senaMonto; S.cfg.precioTotal = r.precioTotal; S.cfg.precios = r.precios; }
+    renderAdmin(); location.hash = 'secPrecios'; toast('Precios y señas guardados');
   };
   app.querySelectorAll('.adm-item').forEach(it => {
     const id = it.dataset.id, row = A.rows.find(x => x.id === id);
@@ -1061,9 +1175,98 @@ function bindAusencias() {
   };
 }
 
+/* ==================== DÍAS: AGREGAR / SACAR (panel) ==================== */
+function adminExtrasHtml() {
+  const hoy = new Date(); const tY = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+  const items = A.extras.map((x, i) => `<div class="ed" data-ex="${i}">
+    <div class="grid">
+      <div><label>Fecha</label><input type="date" data-k="fecha" min="${tY}" value="${esc(x.fecha)}"></div>
+      <div><label>Servicio</label><select data-k="servicio"><option value="neuro" ${x.servicio === 'neuro' ? 'selected' : ''}>Neurología (CEVET)</option><option value="domi" ${x.servicio === 'domi' ? 'selected' : ''}>Clínica a domicilio</option></select></div>
+      <div><label>Desde</label><input type="time" data-k="desde" value="${esc(x.desde)}"></div>
+      <div><label>Hasta</label><input type="time" data-k="hasta" value="${esc(x.hasta)}"></div>
+    </div>
+    <label>Nota <small>(interna, opcional)</small></label><input data-k="nota" maxlength="80" value="${esc(x.nota)}">
+    <div class="row" style="margin-top:10px"><button class="btn small danger" type="button" data-del-ex="${i}">Borrar</button></div>
+  </div>`).join('');
+  return `<div class="adm-sec card" id="secDias"><h2 style="font-size:19px">Agregar o sacar días de turnos</h2>
+    <h3 style="font-size:17px;margin:6px 0">➕ Agregar días u horarios extra</h3>
+    <p class="hint" style="margin:0 0 10px">Para abrir turnos fuera de tu horario habitual (un sábado, un feriado, una tarde extra). Se suman a los horarios de siempre, aunque ese día esté cerrado. Los turnos que ya tengas en Google Calendar se respetan.</p>
+    ${items || '<p class="hint">No hay días extra cargados.</p>'}
+    <div class="row"><button class="btn small secondary" type="button" id="addEx">+ Agregar día extra</button><button class="btn small" type="button" id="saveEx">Guardar días extra</button></div>
+    <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días (cerrar)</h3>
+    <p class="hint" style="margin:0 0 10px">Cierra todos los turnos de esas fechas (Neurología y Domicilio). Los turnos ya reservados <b>no</b> se cancelan solos: cancelalos arriba si hace falta. Para cerrar con un colega que te reemplace, usá "Vacaciones, ausencias y reemplazos".</p>
+    <div class="ed"><div class="grid">
+      <div><label>Desde</label><input type="date" id="cerrDesde" min="${tY}"></div>
+      <div><label>Hasta <small>(un solo día: misma fecha)</small></label><input type="date" id="cerrHasta" min="${tY}"></div>
+    </div>
+    <label>Motivo <small>(interno)</small></label><input id="cerrMotivo" maxlength="60" placeholder="Congreso, feriado…">
+    <div class="row" style="margin-top:10px"><button class="btn small" type="button" id="cerrBtn">Cerrar esos días</button></div></div>
+    <p class="hint">Los días cerrados aparecen (y se pueden reabrir borrándolos) en "Vacaciones, ausencias y reemplazos".</p>
+  </div>`;
+}
+
+function bindExtras() {
+  const sync = () => { readEditor('[data-ex]').forEach((c, i) => Object.assign(A.extras[i], c)); };
+  $('#addEx').onclick = () => { sync(); A.extras.push({ id: '', fecha: '', servicio: 'neuro', desde: '10:00', hasta: '12:00', nota: '' }); renderAdmin(); location.hash = 'secDias'; };
+  app.querySelectorAll('[data-del-ex]').forEach(b => b.onclick = () => ask('¿Borrar este día extra?', 'Se borra cuando toques "Guardar días extra". Los turnos ya reservados en ese horario no se tocan.', 'Sí, borrar', () => { sync(); A.extras.splice(Number(b.dataset.delEx), 1); renderAdmin(); location.hash = 'secDias'; }));
+  $('#saveEx').onclick = async () => {
+    sync();
+    const r = await api('admin_extras', { extras: A.extras });
+    if (!r.ok) return toast(r.error);
+    A.extras = r.extras; renderAdmin(); location.hash = 'secDias'; toast('Días extra guardados');
+  };
+  $('#cerrBtn').onclick = () => {
+    const d = $('#cerrDesde').value, h = $('#cerrHasta').value || d;
+    if (!d) return toast('Elegí la fecha desde');
+    if (h < d) return toast('La fecha "hasta" es anterior a "desde"');
+    const reservados = A.rows.filter(r => r.estado === 'activo' && r.ymd >= d && r.ymd <= h).length;
+    ask('¿Cerrar del ' + labelDate(d) + ' al ' + labelDate(h) + '?', 'No se van a ofrecer turnos esos días.' + (reservados ? ' Ojo: ya tenés ' + reservados + ' turno(s) reservado(s) en esas fechas; no se cancelan solos.' : ''), 'Sí, cerrar', async () => {
+      const nueva = { id: '', desde: d, hasta: h, motivo: $('#cerrMotivo').value.trim() || 'Día cerrado', neuro: 'cerrado', domi: 'cerrado', reemplazo: { nombre: '', email: '', calendarId: '', desde: '', hasta: '', dias: [1, 2, 3, 4, 5] }, senaInstrucciones: '' };
+      const r = await api('admin_ausencias', { ausencias: A.ausencias.concat([nueva]) });
+      if (!r.ok) return toast(r.error);
+      A.ausencias = r.ausencias; renderAdmin(); location.hash = 'secDias'; toast('Días cerrados');
+    });
+  };
+}
+
+/* ==================== TEXTOS DE LA APP (panel) ==================== */
+function adminTextosHtml() {
+  const keys = Object.keys(DEFAULT_TEXTS).concat(A.textosMail || []);
+  const items = keys.map(k => {
+    const def = DEFAULT_TEXTS[k] || '', val = A.textos[k] || '', mail = k.indexOf('mail_') === 0;
+    return `<div class="ed" data-tx="${k}">
+      <label>${esc(TEXT_LABELS[k] || k)} ${val ? '<span class="tag pend" style="font-size:12px">editado</span>' : ''}</label>
+      <textarea data-txv="${k}" maxlength="600" style="min-height:${def.length > 70 || mail ? 80 : 44}px" placeholder="${esc(mail ? '(vacío: no se agrega nada)' : def)}">${esc(val || (mail ? '' : def))}</textarea>
+      ${mail ? '' : '<button class="btn small ghost" type="button" data-txr="' + k + '" style="margin-top:6px">Volver al original</button>'}
+    </div>`;
+  }).join('');
+  return `<div class="adm-sec card" id="secTextos"><h2 style="font-size:19px">Textos de la app y de los mails</h2>
+    <p class="hint" style="margin:0 0 10px">Cambiá lo que quieras y tocá "Guardar textos". Para poner algo en negrita escribilo entre dos asteriscos: <b>**así**</b>. Los textos entre llaves, como {seña}, se reemplazan solos por el valor real: no los borres.</p>
+    <details><summary style="cursor:pointer;font-weight:700;padding:8px 0">Ver y editar los textos (${keys.length})</summary>${items}</details>
+    <button class="btn small" type="button" id="saveTx" style="margin-top:10px">Guardar textos</button></div>`;
+}
+
+function bindTextos() {
+  app.querySelectorAll('[data-txr]').forEach(b => b.onclick = () => { const k = b.dataset.txr; app.querySelector('[data-txv="' + k + '"]').value = DEFAULT_TEXTS[k]; toast('Restaurado. Tocá "Guardar textos".'); });
+  $('#saveTx').onclick = async () => {
+    const out = {};
+    app.querySelectorAll('[data-txv]').forEach(t => {
+      const k = t.dataset.txv, v = t.value.trim();
+      if (v && v !== DEFAULT_TEXTS[k]) out[k] = v; // igual al original = no se guarda
+    });
+    const r = await api('admin_textos', { textos: out });
+    if (!r.ok) return toast(r.error);
+    A.textos = r.textos;
+    if (S.cfg) { const app_ = {}; Object.keys(r.textos).forEach(k => { if (k.indexOf('mail_') !== 0) app_[k] = r.textos[k]; }); S.cfg.textos = app_; }
+    renderAdmin(); location.hash = 'secTextos'; toast('Textos guardados');
+  };
+}
+
 /* ==================== MODO DEMOSTRACIÓN ==================== */
 const Demo = {
-  db: [], pin: '1234', sena: 35000, precio: 70000,
+  db: [], pin: '1234', sena: 35000, precio: 70000, precioD: null, senaD: null, extras: [], textos: {},
+  precios() { return { neuro: { precio: this.precio, sena: this.sena }, domi: { precio: this.precioD == null ? this.precio : this.precioD, sena: this.senaD == null ? this.sena : this.senaD }, clinicaPropio: this.precioD != null }; },
+  textosApp() { const o = {}; Object.keys(this.textos).forEach(k => { if (k.indexOf('mail_') !== 0) o[k] = this.textos[k]; }); return o; },
   avisos: [{ id: 'aviso-vac', v: '1', activo: true, popup: true, estilo: 'importante', titulo: 'Estoy de vacaciones hasta el 25 de octubre', texto: 'Las consultas clínicas y a domicilio las atiende mi colega <b>Luciano Bellotti</b>: podés sacar turno de domicilio normalmente desde esta app.<br>Los turnos de <span style="color:#5b3fa0">Neurología</span> se retoman desde el <span style="background-color:#fff176">lunes 26 de octubre</span>.', desde: '', hasta: '2026-10-25', linkTexto: '', linkUrl: '' }],
   ausencias: [{ id: 'vac', desde: '2026-10-02', hasta: '2026-10-25', motivo: 'Vacaciones', neuro: 'cerrado', domi: 'reemplazo', reemplazo: { nombre: 'Luciano Bellotti', email: '', calendarId: '', desde: '', hasta: '', dias: [1,2,3,4,5] }, senaInstrucciones: '' }],
   aus(ymd) { return this.ausencias.find(a => a.desde <= ymd && ymd <= a.hasta); },
@@ -1074,15 +1277,20 @@ const Demo = {
     for (let i = 0; i < 75 && out.length < 21; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       const dow = d.getDay(), ymd = this.ymd(d), a = this.aus(ymd);
-      if (a && (service === 'neuro' ? a.neuro === 'cerrado' : a.domi === 'cerrado')) continue;
+      const exD = this.extras.filter(x => x.fecha === ymd && x.servicio === service);
+      if (!exD.length && a && (service === 'neuro' ? a.neuro === 'cerrado' : a.domi === 'cerrado')) continue;
       let hms = [];
-      if (service === 'neuro') {
+      const cerrado = a && (service === 'neuro' ? a.neuro === 'cerrado' : a.domi === 'cerrado');
+      const exHms = [];
+      exD.forEach(x => { const st = service === 'neuro' ? 40 : 30; for (let m = +x.desde.slice(0, 2) * 60 + +x.desde.slice(3); m + st <= +x.hasta.slice(0, 2) * 60 + +x.hasta.slice(3); m += st) exHms.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); });
+      if (cerrado) {} else if (service === 'neuro') {
         if (dow >= 1 && dow <= 5) hms = ['11:00', '15:00'].concat(dow === 1 || dow === 4 || dow === 5 ? ['18:00', '19:00'] : []);
         if (dow === 6) hms = ['10:00'];
       } else if (dow >= 1 && dow <= 5) {
         const near = km != null && km <= 2, dur = near ? 30 : 40, end = dow === 2 || dow === 3 ? 19 * 60 : 15 * 60 + 30;
         for (let m = near ? 540 : 600; m + dur <= end; m += dur) hms.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
       }
+      hms = Array.from(new Set(hms.concat(exHms))).sort();
       const dur = service === 'neuro' ? 40 : (km != null && km <= 2 ? 30 : 40);
       const slots = hms.map(hm => {
         const [h, m] = hm.split(':').map(Number);
@@ -1104,7 +1312,7 @@ const Demo = {
     await new Promise(r => setTimeout(r, 350));
     const km = p.address ? (/c[oó]rdoba|centro|montevideo|pellegrini|oro[nñ]o/i.test(p.address) ? 1.4 : 5.8) : null;
     switch (p.action) {
-      case 'config': { const hoy = this.ymd(new Date()); return { ok: true, senaMonto: this.sena, precioTotal: this.precio, senaInstrucciones: this.instr, ai: false, avisos: this.avisos.filter(a => a.activo && (!a.desde || a.desde <= hoy) && (!a.hasta || a.hasta >= hoy)) }; }
+      case 'config': { const hoy = this.ymd(new Date()); return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), textos: this.textosApp(), senaInstrucciones: this.instr, ai: false, avisos: this.avisos.filter(a => a.activo && (!a.desde || a.desde <= hoy) && (!a.hasta || a.hasta >= hoy)) }; }
       case 'admin_avisos': this.avisos = p.avisos.map((a, i) => Object.assign({}, a, { id: a.id || 'av' + Date.now() + i, v: String(Date.now()) })); return { ok: true, avisos: this.avisos };
       case 'admin_ausencias': this.ausencias = p.ausencias.map((a, i) => Object.assign({}, a, { id: a.id || 'au' + i })); return { ok: true, ausencias: this.ausencias };
       case 'slots': {
@@ -1118,7 +1326,7 @@ const Demo = {
         const s = new Date(p.start), dur = p.service === 'neuro' ? 40 : (km <= 2 ? 30 : 40);
         const b = { id: 'DEMO-' + (this.db.length + 1), token: 'demo' + Math.random().toString(36).slice(2) + 'xxxxxxxxxxxx', servicio: p.service, estado: 'activo', inicio: s.toISOString(), fin: new Date(s.getTime() + dur * 60000).toISOString(),
           mascota: p.mascota, motivo: p.motivo, nombre: p.nombre, apellido: p.apellido, telefono: p.telefono, whatsapp: '549' + (p.telefono || '').replace(/\D/g, ''), email: p.email,
-          direccion: p.direccion ? p.direccion + (p.detalle ? ' · ' + p.detalle : '') : '', km: km, profesional: (p.service === 'domi' && this.aus(this.ymd(s)) && this.aus(this.ymd(s)).domi === 'reemplazo') ? this.aus(this.ymd(s)).reemplazo.nombre : '', maps: '#', derivadoPor: p.derivadoPor, senaMonto: this.sena, precio: this.precio, senaEstado: 'pendiente', notas: '' };
+          direccion: p.direccion ? p.direccion + (p.detalle ? ' · ' + p.detalle : '') : '', km: km, profesional: (p.service === 'domi' && this.aus(this.ymd(s)) && this.aus(this.ymd(s)).domi === 'reemplazo') ? this.aus(this.ymd(s)).reemplazo.nombre : '', maps: '#', derivadoPor: p.derivadoPor, senaMonto: this.precios()[p.service].sena, precio: this.precios()[p.service].precio, senaEstado: 'pendiente', notas: '' };
         this.db.push(b);
         return { ok: true, token: b.token, booking: this.pub(b) };
       }
@@ -1126,10 +1334,16 @@ const Demo = {
       case 'cancel': { const b = this.db.find(x => x.token === p.token); b.estado = 'cancelado (tutor)'; return { ok: true, booking: this.pub(b) }; }
       case 'reschedule': { const b = this.db.find(x => x.token === p.token); const d = new Date(b.fin) - new Date(b.inicio); b.inicio = p.start; b.fin = new Date(new Date(p.start).getTime() + d).toISOString(); return { ok: true, booking: this.pub(b) }; }
       case 'admin_login': return p.pin === this.pin ? { ok: true } : { ok: false, error: 'PIN incorrecto. (En la demo es 1234)' };
-      case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias } : { ok: false, error: 'PIN incorrecto.' };
+      case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias, extras: this.extras, textos: this.textos, textosMail: ['mail_confirmacion', 'mail_recordatorio', 'mail_pie'] } : { ok: false, error: 'PIN incorrecto.' };
       case 'admin_update': { const b = this.db.find(x => x.id === p.id); if (p.senaEstado) b.senaEstado = p.senaEstado; if (p.senaMonto) b.senaMonto = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precio) b.precio = Number(String(p.precio).replace(/\D/g, '')); if (p.notas !== undefined) b.notas = p.notas; return { ok: true, row: this.pub(b) }; }
       case 'admin_cancel': { const b = this.db.find(x => x.id === p.id); b.estado = 'cancelado (Sergio)'; return { ok: true, row: this.pub(b) }; }
-      case 'admin_settings': { if (p.senaMonto) this.sena = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precioTotal) this.precio = Number(String(p.precioTotal).replace(/\D/g, '')); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, senaInstrucciones: this.instr }; }
+      case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro) this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi) this.senaD = n(p.senaDomi); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
+      case 'admin_extras': this.extras = p.extras.map((x, i) => Object.assign({}, x, { id: x.id || 'ex' + i })); return { ok: true, extras: this.extras };
+      case 'admin_textos': this.textos = p.textos; return { ok: true, textos: this.textos };
+      case 'lookup': {
+        const nat = x => { let d = String(x || '').replace(/\D/g, ''); if (d.indexOf('549') === 0 && d.length >= 12) d = d.slice(3); else if (d.indexOf('54') === 0 && d.length >= 11) d = d.slice(2); d = d.replace(/^0/, ''); if (d.length === 12) for (let k = 2; k <= 4; k++) if (d.substr(k, 2) === '15') { d = d.slice(0, k) + d.slice(k + 2); break; } return d.slice(-10); };
+        const nm = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+        const t = nat(p.telefono); const l = this.db.filter(b => b.estado === 'activo' && nat(b.telefono) === t && nm(b.mascota) === nm(p.mascota)); return { ok: true, turnos: l.map(b => ({ token: b.token, when: this.pub(b).when, servicio: b.servicio, mascota: b.mascota })) }; }
       case 'ai': return { ok: false, error: 'El asistente no está activo en la demo.' };
     }
     return { ok: false, error: 'Acción desconocida.' };
