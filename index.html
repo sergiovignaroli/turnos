@@ -858,7 +858,7 @@ function renderAdmin() {
       <button class="btn" type="button" id="newT">+ Cargar turno</button>
       <button class="btn secondary" type="button" id="reload">Actualizar</button>
     </div>
-    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precios y señas</a><a class="btn small ghost" href="#secDias">Agregar / sacar días</a><a class="btn small ghost" href="#secTextos">Textos</a></div>
+    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precios y señas</a><a class="btn small ghost" href="#secDias">Agregar / sacar días</a><a class="btn small ghost" href="#secTextos">Textos</a><a class="btn small ghost" href="#secPin">Cambiar PIN</a></div>
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Filtro">
         <button type="button" data-f="proximos" class="${A.filter === 'proximos' ? 'on' : ''}">Próximos</button>
@@ -916,12 +916,30 @@ function renderAdmin() {
     <label class="f" for="sInstr">Instrucciones de pago de la seña (las ve el tutor)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
     <button class="btn secondary" style="margin-top:12px" type="button" id="saveCfg">Guardar precios y señas</button></div>
     <div class="card"><h2 style="font-size:19px">Compartir la agenda</h2><p class="hint" style="margin:0">Los turnos están en tus calendarios <b>Neurología</b> (neuro) y principal (domicilios) de Google Calendar. Para compartirlos: Google Calendar en la compu → Configuración → el calendario → “Compartir con personas”.</p></div>
+    <div class="card" id="secPin"><h2 style="font-size:19px">🔒 Cambiar el PIN del panel</h2>
+      <p class="hint" style="margin:0 0 6px">Elegí uno que no sea fácil de adivinar (evitá 1234, 0000 o tu fecha de nacimiento).</p>
+      <label class="f" for="pinAct">PIN actual</label><input class="in" id="pinAct" type="password" autocomplete="current-password">
+      <label class="f" for="pinNew">PIN nuevo <small>(4 o más caracteres)</small></label><input class="in" id="pinNew" type="password" autocomplete="new-password">
+      <label class="f" for="pinRep">Repetí el PIN nuevo</label><input class="in" id="pinRep" type="password" autocomplete="new-password">
+      <button class="btn secondary" style="margin-top:12px" type="button" id="pinBtn">Cambiar PIN</button>
+    </div>
     <button class="btn ghost" type="button" id="logout">Salir del panel</button>`;
   app.innerHTML = html;
   $('#newT').onclick = () => { S.adminBooking = true; S.form = {}; viewHome(); };
   $('#reload').onclick = viewAdmin;
   $('#logout').onclick = () => { S.pin = ''; store('pin', null); viewAdminLogin(); };
   bindAvisos(); bindAusencias(); bindRte(); bindExtras(); bindTextos();
+  $('#pinBtn').onclick = async () => {
+    const act = $('#pinAct').value, nue = $('#pinNew').value.trim(), rep_ = $('#pinRep').value.trim();
+    if (!act || !nue) return toast('Completá el PIN actual y el nuevo');
+    if (nue.length < 4) return toast('El PIN nuevo tiene que tener 4 o más caracteres');
+    if (nue !== rep_) return toast('El PIN nuevo y su repetición no coinciden');
+    const r = await api('admin_pin', { actual: act, nuevo: nue, repetir: rep_ });
+    if (!r.ok) return toast(r.error);
+    S.pin = nue; store('pin', nue);
+    $('#pinAct').value = $('#pinNew').value = $('#pinRep').value = '';
+    toast('PIN cambiado. La próxima vez entrá con el nuevo.');
+  };
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { A.filter = b.dataset.f; renderAdmin(); });
   app.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { A.svc = b.dataset.v; renderAdmin(); });
   const num = v => Number(String(v || '').replace(/\D/g, ''));
@@ -1340,6 +1358,7 @@ const Demo = {
       case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro) this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi) this.senaD = n(p.senaDomi); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
       case 'admin_extras': this.extras = p.extras.map((x, i) => Object.assign({}, x, { id: x.id || 'ex' + i })); return { ok: true, extras: this.extras };
       case 'admin_textos': this.textos = p.textos; return { ok: true, textos: this.textos };
+      case 'admin_pin': if (p.pin !== this.pin) return { ok: false, error: 'PIN incorrecto.' }; if (p.actual !== this.pin) return { ok: false, error: 'El PIN actual no es correcto.' }; if (p.nuevo !== p.repetir) return { ok: false, error: 'El PIN nuevo y su repetición no coinciden.' }; this.pin = p.nuevo; return { ok: true };
       case 'lookup': {
         const nat = x => { let d = String(x || '').replace(/\D/g, ''); if (d.indexOf('549') === 0 && d.length >= 12) d = d.slice(3); else if (d.indexOf('54') === 0 && d.length >= 11) d = d.slice(2); d = d.replace(/^0/, ''); if (d.length === 12) for (let k = 2; k <= 4; k++) if (d.substr(k, 2) === '15') { d = d.slice(0, k) + d.slice(k + 2); break; } return d.slice(-10); };
         const nm = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
