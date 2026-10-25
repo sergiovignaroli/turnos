@@ -253,7 +253,7 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 
     <div class="hstep">
       <svg viewBox="0 0 112 84" aria-hidden="true"><rect x="10" y="10" width="92" height="28" rx="8" fill="#fff" stroke="#5b3fa0" stroke-width="2"/><circle cx="26" cy="24" r="8" fill="#efe9fb"/><rect x="40" y="19" width="48" height="10" rx="5" fill="#5b3fa0"/><rect x="10" y="46" width="92" height="28" rx="8" fill="#fff" stroke="#0f6e4a" stroke-width="2"/><circle cx="26" cy="60" r="8" fill="#e2f4ec"/><rect x="40" y="55" width="48" height="10" rx="5" fill="#0f6e4a"/><path d="M78 32l10 18 3-7 7-2z" fill="#16232a"/></svg>
-      <div><b><span class="num">1</span>Elegí qué necesitás</b><p><b>Neurología</b> (en CEVET) o <b>Clínica a domicilio</b> (vamos a tu casa).</p></div>
+      <div><b><span class="num">1</span>Elegí qué necesitás</b><p><b>Neurología</b> (presencial en CEVET u online) o <b>Clínica a domicilio</b> (vamos a tu casa).</p></div>
     </div>
 
     <div class="hstep">
@@ -339,7 +339,13 @@ const DEFAULT_TEXTS = {
   fin_titulo: '¡Turno reservado!',
   fin_neuro: 'Te esperamos en CEVET.',
   fin_domi: 'Te esperamos con la mascota en casa.',
-  cancelar_aviso: 'Si pagaste seña, escribinos por WhatsApp.'
+  cancelar_aviso: 'Si pagaste seña, escribinos por WhatsApp.',
+  neuro_modo_titulo: '¿Cómo querés la consulta?',
+  neuro_presencial_desc: 'En CEVET · Montevideo 2620',
+  neuro_online_desc: 'Por videollamada · coordinamos por WhatsApp',
+  online_titulo: 'Consulta neurológica online',
+  online_texto: 'La consulta online se coordina por WhatsApp. Escribinos y te pasamos la disponibilidad.',
+  online_wa_msg: 'Hola, quiero una consulta neurológica online para mi mascota. ¿Qué disponibilidad tienen?'
 };
 const TEXT_LABELS = {
   home_titulo: 'Inicio · título', home_sub: 'Inicio · subtítulo',
@@ -352,6 +358,9 @@ const TEXT_LABELS = {
   sin_turnos: 'Cuando no hay horarios', fin_titulo: 'Turno reservado · título',
   fin_neuro: 'Turno reservado · Neurología', fin_domi: 'Turno reservado · Domicilio',
   cancelar_aviso: 'Al cancelar · aviso',
+  neuro_modo_titulo: 'Neurología · pregunta presencial u online', neuro_presencial_desc: 'Neurología · descripción de "Presencial"',
+  neuro_online_desc: 'Neurología · descripción de "Online"', online_titulo: 'Online · título de la pantalla',
+  online_texto: 'Online · explicación', online_wa_msg: 'Online · mensaje que se manda por WhatsApp',
   mail_confirmacion: 'Mail de confirmación · texto extra', mail_recordatorio: 'Mail de recordatorio · texto extra',
   mail_pie: 'Todos los mails · texto al pie'
 };
@@ -437,8 +446,50 @@ function viewHome() {
     <div class="note warn">${T('urgencia')}</div>
     ${S.adminBooking ? '<button class="btn ghost" type="button" id="toAdmin">Volver al panel</button>' : ''}`;
   const mb = $('#misBtn'); if (mb) mb.onclick = viewMisTurnos;
-  app.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => { S.service = b.dataset.svc; S.service === 'domi' ? viewAddress() : loadSlots(); });
+  app.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => { S.service = b.dataset.svc; S.service === 'domi' ? viewAddress() : (S.adminBooking ? loadSlots() : viewNeuroModo()); });
   const ta = $('#toAdmin'); if (ta) ta.onclick = () => { S.adminBooking = false; viewAdmin(); };
+  scrollTop();
+}
+
+/* ==================== NEUROLOGÍA: PRESENCIAL U ONLINE ==================== */
+function viewNeuroModo() {
+  S.service = 'neuro';
+  const pr = precioDe('neuro');
+  app.innerHTML = `
+    <button class="back" type="button" id="back">‹ Volver</button>
+    <h1>${T('neuro_modo_titulo')}</h1>
+    <p class="lead"><span class="tag neuro">${T('neuro_titulo')}</span></p>
+    <button class="choice neuro" type="button" id="mPres">
+      <span class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+      <span><b>Presencial</b><span>${T('neuro_presencial_desc')}</span>${pr.precio ? '<span class="price-chip">Consulta ' + money(pr.precio) + '</span>' : ''}</span>
+      <span class="arrow" aria-hidden="true">›</span>
+    </button>
+    <button class="choice neuro" type="button" id="mOnl">
+      <span class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3z"/></svg></span>
+      <span><b>Online</b><span>${T('neuro_online_desc')}</span></span>
+      <span class="arrow" aria-hidden="true">›</span>
+    </button>`;
+  $('#back').onclick = viewHome;
+  $('#mPres').onclick = () => { S.service = 'neuro'; loadSlots(); };
+  $('#mOnl').onclick = viewOnline;
+  scrollTop();
+}
+
+function viewOnline() {
+  const ov = (S.cfg && S.cfg.textos) || {};
+  const msg = ov.online_wa_msg || DEFAULT_TEXTS.online_wa_msg;
+  app.innerHTML = `
+    <button class="back" type="button" id="back">‹ Volver</button>
+    <h1>${T('online_titulo')}</h1>
+    <div class="card">
+      <p style="margin:0 0 16px">${T('online_texto')}</p>
+      <a class="btn wa" id="onlWa" target="_blank" rel="noopener" href="${waLink(msg)}">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+        Consultar disponibilidad por WhatsApp</a>
+    </div>
+    <button class="btn ghost" type="button" id="toPres">Prefiero la consulta presencial</button>`;
+  $('#back').onclick = viewNeuroModo;
+  $('#toPres').onclick = () => { S.service = 'neuro'; loadSlots(); };
   scrollTop();
 }
 
@@ -516,7 +567,7 @@ function viewSlots(msg) {
     <p class="lead"><span class="tag ${S.service}">${svcLbl}</span>${S.service === 'domi' && S.duration ? ' · visitas de ' + S.duration + ' min' : ''}</p>
     ${msg ? '<div class="note bad">' + esc(msg) + '</div>' : ''}
     ${geoNote}${body}`;
-  $('#back').onclick = () => resched ? viewManage() : (S.service === 'domi' ? viewAddress() : viewHome());
+  $('#back').onclick = () => resched ? viewManage() : (S.service === 'domi' ? viewAddress() : (S.adminBooking ? viewHome() : viewNeuroModo()));
   app.querySelectorAll('.day').forEach(b => b.onclick = () => { S.dayIdx = Number(b.dataset.i); viewSlots(); });
   app.querySelectorAll('.slot').forEach(b => b.onclick = () => {
     S.slot = S.days[S.dayIdx].slots[Number(b.dataset.s)]; S.slotYmd = S.days[S.dayIdx].date; S.slotProf = S.days[S.dayIdx].prof || '';
@@ -1301,6 +1352,8 @@ function bindTextos() {
     });
     const r = await api('admin_textos', { textos: out });
     if (!r.ok) return toast(r.error);
+    const perdidos = Object.keys(out).filter(k => !(k in r.textos));
+    if (perdidos.length) toast('⚠ Algunos textos nuevos no se guardaron: actualizá el Code.gs a la última versión.');
     A.textos = r.textos;
     if (S.cfg) { const app_ = {}; Object.keys(r.textos).forEach(k => { if (k.indexOf('mail_') !== 0) app_[k] = r.textos[k]; }); S.cfg.textos = app_; }
     renderAdmin(); location.hash = 'secTextos'; toast('Textos guardados');
@@ -1409,7 +1462,8 @@ const Demo = {
   if (!q.has('admin')) renderAvisos(S.cfg.avisos);
   if (q.has('t')) return openManage(q.get('t'));
   if (q.has('admin')) return viewAdmin();
-  if (q.get('s') === 'neuro') { S.service = 'neuro'; return loadSlots(); }
+  if (q.get('s') === 'neuro') return viewNeuroModo();
+  if (q.get('s') === 'online') return viewOnline();
   if (q.get('s') === 'domi') { S.service = 'domi'; return viewAddress(); }
   viewHome();
 })();
