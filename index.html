@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Turnos · Dr. Sergio Vignaroli</title>
-<meta name="description" content="Sacá tu turno de Neurología o Clínica a domicilio con el Dr. Sergio Vignaroli, médico veterinario en Rosario.">
+<meta name="description" content="Sacá tu turno de Neurología o Clínica general a domicilio con el Dr. Sergio Vignaroli, médico veterinario en Rosario.">
 <meta name="theme-color" content="#00767c">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -66,7 +66,7 @@ p.lead{color:var(--muted);margin:0 0 18px}
 .choice.domi .ic{background:var(--domi-soft);color:var(--domi)}
 .choice b{display:block;font-size:21px;color:var(--ink)}
 .choice span{color:var(--muted);font-size:16px}
-.choice .price-chip{display:inline-block;margin-top:4px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:14px;border-radius:999px;padding:2px 10px}
+.choice .price-chip{display:table;margin-top:6px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:14px;border-radius:999px;padding:2px 10px}
 .choice .arrow{margin-left:auto;font-size:28px;color:var(--muted)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:14px 20px;font-weight:700;font-size:18px;min-height:56px;cursor:pointer;text-decoration:none;background:var(--brand);color:#fff;width:100%}
 .btn:disabled{opacity:.55;cursor:not-allowed}
@@ -177,6 +177,18 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .price-edit{border:2px solid;border-radius:14px;padding:12px 14px;margin:12px 0 0}
 .price-edit h3{margin:0 0 2px;font-size:18px}
 .price-edit .in{background:#fff}
+.hr-dia{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 8px;background:#fff}
+.hr-dia.off{background:#f6f8f9}
+.hr-cab{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;min-height:40px}
+.hr-cab::-webkit-details-marker{display:none}
+.hr-cab b{min-width:84px}
+.hr-res{flex:1;font-size:14px;color:var(--muted)}
+.hr-ed{font-size:13px;color:var(--brand);font-weight:700}
+.hr-dia[open] .hr-ed{visibility:hidden}
+.hr-fr{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:flex-end;margin:8px 0 0;padding:8px 0 0;border-top:1px dashed var(--line)}
+.hr-fr label{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--muted);margin:0}
+.hr-fr input{min-height:42px;border:2px solid var(--line);border-radius:10px;padding:4px 6px;font-size:16px;background:#fff;width:124px}
+.hr-fr .hr-prev{flex:1 1 100%;margin:2px 0 0;font-size:13px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid2>div{min-width:0}
 .prof-note{background:#fff4d6;color:#6b4500;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:16px}
@@ -253,7 +265,7 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 
     <div class="hstep">
       <svg viewBox="0 0 112 84" aria-hidden="true"><rect x="10" y="10" width="92" height="28" rx="8" fill="#fff" stroke="#5b3fa0" stroke-width="2"/><circle cx="26" cy="24" r="8" fill="#efe9fb"/><rect x="40" y="19" width="48" height="10" rx="5" fill="#5b3fa0"/><rect x="10" y="46" width="92" height="28" rx="8" fill="#fff" stroke="#0f6e4a" stroke-width="2"/><circle cx="26" cy="60" r="8" fill="#e2f4ec"/><rect x="40" y="55" width="48" height="10" rx="5" fill="#0f6e4a"/><path d="M78 32l10 18 3-7 7-2z" fill="#16232a"/></svg>
-      <div><b><span class="num">1</span>Elegí qué necesitás</b><p><b>Neurología</b> (presencial en CEVET u online) o <b>Clínica a domicilio</b> (vamos a tu casa).</p></div>
+      <div><b><span class="num">1</span>Elegí qué necesitás</b><p><b>Neurología</b> (presencial en CEVET u online) o <b>Clínica general a domicilio</b> (vamos a tu casa).</p></div>
     </div>
 
     <div class="hstep">
@@ -325,8 +337,8 @@ const DEFAULT_TEXTS = {
   home_sub: '¿Qué necesita tu mascota?',
   neuro_titulo: 'Neurología',
   neuro_desc: 'Consulta en CEVET · Montevideo 2620',
-  domi_titulo: 'Clínica a domicilio',
-  domi_desc: 'Vamos a tu casa, en Rosario',
+  domi_titulo: 'Clínica general',
+  domi_desc: 'Consultas a domicilio · Rosario',
   urgencia: '**¿Es una urgencia?** (convulsión que no para, le cuesta respirar, un golpe fuerte, se intoxicó) No esperes un turno: andá a una guardia veterinaria 24 h y escribinos por WhatsApp.',
   mis_turnos_btn: '¿Ya tenés turno? Ver, cambiar o cancelar',
   domi_pregunta: '¿Dónde vamos?',
@@ -535,7 +547,7 @@ async function loadSlots(keepDay) {
 
 function viewSlots(msg) {
   const resched = !!S.token;
-  const svcLbl = S.service === 'neuro' ? 'Neurología' : 'Clínica a domicilio';
+  const svcLbl = S.service === 'neuro' ? 'Neurología' : 'Clínica general a domicilio';
   let geoNote = '';
   if (S.service === 'domi' && S.geo && !resched) {
     geoNote = S.geo.verified
@@ -551,7 +563,7 @@ function viewSlots(msg) {
       const [, m, dd] = ymdParts(x.date);
       return `<button type="button" class="day ${i === S.dayIdx ? 'on' : ''}" data-i="${i}" aria-pressed="${i === S.dayIdx}"><b>${DIAS_C[x.dow]}</b><strong>${dd}</strong><em>${MESES_C[m - 1]}</em></button>`;
     }).join('');
-    const slotBtns = d.slots.map((s, i) => `<button type="button" class="slot" data-s="${i}">${s.hm}<small>hasta ${s.hmEnd}</small></button>`).join('');
+    const slotBtns = d.slots.map((s, i) => `<button type="button" class="slot" data-s="${i}">${s.hm}</button>`).join('');
     body = `
       <h2 style="font-size:19px;margin:6px 0 8px">1. Tocá un día</h2>
       <div class="days" id="days" role="group" aria-label="Días disponibles">${dayBtns}</div>
@@ -593,7 +605,7 @@ function viewForm(errMsg, errFields) {
     <button class="back" type="button" id="back">‹ Cambiar horario</button>
     ${stepsBar(neuro ? 2 : 3, neuro ? 3 : 4)}
     <h1>${T('datos_titulo')}</h1>
-    <div class="note info"><b>${esc(labelDate(S.slotYmd))} · ${S.slot.hm} h</b><br>${neuro ? 'Neurología en CEVET – Montevideo 2620' : 'Clínica a domicilio – ' + esc(S.address)}${S.slotProf ? '<br>Te atiende: <b>' + esc(S.slotProf) + '</b>' : ''}</div>
+    <div class="note info"><b>${esc(labelDate(S.slotYmd))} · ${S.slot.hm} h</b><br>${neuro ? 'Neurología en CEVET – Montevideo 2620' : 'Clínica general a domicilio – ' + esc(S.address)}${S.slotProf ? '<br>Te atiende: <b>' + esc(S.slotProf) + '</b>' : ''}</div>
     ${errMsg ? '<div class="note bad" id="formErr">' + esc(errMsg) + '</div>' : ''}
     <form id="dataForm" class="card" novalidate>
       <h2 style="font-size:19px">La mascota</h2>
@@ -683,7 +695,7 @@ function viewDone(fresh) {
     </div>
     <div class="card">
       <dl class="summary">
-        <dt>Servicio</dt><dd>${b.servicio === 'neuro' ? 'Neurología' : 'Clínica a domicilio'}</dd>
+        <dt>Servicio</dt><dd>${b.servicio === 'neuro' ? 'Neurología' : 'Clínica general a domicilio'}</dd>
         <dt>Mascota</dt><dd>${esc(b.mascota)}</dd>
         <dt>Día</dt><dd>${esc(labelDate(b.ymd))}</dd>
         <dt>Hora</dt><dd>${b.hm} h</dd>
@@ -745,7 +757,7 @@ function viewManage(msg) {
     ${msg ? '<div class="note ' + (msg.ok ? 'ok' : 'bad') + '">' + esc(msg.t) + '</div>' : ''}
     <div class="card">
       <dl class="summary">
-        <dt>Servicio</dt><dd>${b.servicio === 'neuro' ? 'Neurología' : 'Clínica a domicilio'}</dd>
+        <dt>Servicio</dt><dd>${b.servicio === 'neuro' ? 'Neurología' : 'Clínica general a domicilio'}</dd>
         <dt>Mascota</dt><dd>${esc(b.mascota)}</dd>
         <dt>Día</dt><dd>${esc(labelDate(b.ymd))}</dd>
         <dt>Hora</dt><dd>${b.hm} h</dd>
@@ -787,7 +799,7 @@ async function viewMisTurnos(msg) {
     else if (r.ok || r.code !== 'NET') olvidarToken(t);
   }
   const item = (t, when, svc, masc) => `<button class="choice ${svc}" type="button" data-tk="${esc(t)}" style="min-height:72px">
-      <span><b style="font-size:18px">${esc(when)}</b><span>${svc === 'neuro' ? 'Neurología' : 'Clínica a domicilio'} · ${esc(masc)}</span></span><span class="arrow" aria-hidden="true">›</span></button>`;
+      <span><b style="font-size:18px">${esc(when)}</b><span>${svc === 'neuro' ? 'Neurología' : 'Clínica general a domicilio'} · ${esc(masc)}</span></span><span class="arrow" aria-hidden="true">›</span></button>`;
   app.innerHTML = `
     <button class="back" type="button" id="back">‹ Volver</button>
     <h1>Mis turnos</h1>
@@ -896,6 +908,9 @@ async function viewAdmin() {
   A.rows = r.rows; A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.senaInstr = r.senaInstrucciones;
   A.precios = r.precios || { neuro: { precio: r.precioTotal, sena: r.senaMonto }, domi: { precio: r.precioTotal, sena: r.senaMonto } };
   A.extras = r.extras || []; A.textos = r.textos || {}; A.textosMail = r.textosMail || [];
+  A.horDisp = !!r.horario; A.horario = r.horario || null; A.horOrig = r.horarioOriginal || null; A.horEdit = !!r.horarioEditado;
+  A.horDraft = A.horario ? JSON.parse(JSON.stringify(A.horario)) : null; A.horDirty = false; A.horSvc = A.horSvc || 'neuro';
+  A.bloqueos = r.bloqueos || [];
   A.avisos = r.avisos || []; A.ausencias = r.ausencias || [];
   renderAdmin();
 }
@@ -912,7 +927,7 @@ function renderAdmin() {
       <button class="btn" type="button" id="newT">+ Cargar turno</button>
       <button class="btn secondary" type="button" id="reload">Actualizar</button>
     </div>
-    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precios y señas</a><a class="btn small ghost" href="#secDias">Agregar / sacar días</a><a class="btn small ghost" href="#secTextos">Textos</a><a class="btn small ghost" href="#secPin">Cambiar PIN</a></div>
+    <div class="row" style="margin:-4px 0 14px"><a class="btn small ghost" href="#secAvisos">Avisos</a><a class="btn small ghost" href="#secAus">Vacaciones / reemplazos</a><a class="btn small ghost" href="#secPrecios">Precios y señas</a><a class="btn small ghost" href="#secHorario">Horario semanal</a><a class="btn small ghost" href="#secDias">Cambios por fecha</a><a class="btn small ghost" href="#secTextos">Textos</a><a class="btn small ghost" href="#secPin">Cambiar PIN</a></div>
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Filtro">
         <button type="button" data-f="proximos" class="${A.filter === 'proximos' ? 'on' : ''}">Próximos</button>
@@ -955,7 +970,7 @@ function renderAdmin() {
     </div>`;
   });
   html += adminAvisosHtml() + adminAusenciasHtml();
-  html += adminExtrasHtml() + adminTextosHtml();
+  html += adminHorarioHtml() + adminExtrasHtml() + adminTextosHtml();
   html += `<div class="card" style="margin-top:24px" id="secPrecios"><h2 style="font-size:19px">Precios de las consultas y señas</h2>
     <p class="hint" style="margin:0 0 10px">Cada servicio tiene su precio y su seña, <b>independientes</b>. El tutor ve los de Neurología solo cuando elige Neurología, y los de Clínica solo cuando elige Clínica. Valen para los turnos <b>nuevos</b>; los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
     <div class="price-edit" style="border-color:var(--neuro);background:var(--neuro-soft)">
@@ -991,7 +1006,7 @@ function renderAdmin() {
   $('#newT').onclick = () => { S.adminBooking = true; S.form = {}; viewHome(); };
   $('#reload').onclick = viewAdmin;
   $('#logout').onclick = () => { S.pin = ''; store('pin', null); viewAdminLogin(); };
-  bindAvisos(); bindAusencias(); bindRte(); bindExtras(); bindTextos();
+  bindAvisos(); bindAusencias(); bindRte(); bindHorario(); bindExtras(); bindTextos();
   $('#pinBtn').onclick = async () => {
     const act = $('#pinAct').value, nue = $('#pinNew').value.trim(), rep_ = $('#pinRep').value.trim();
     if (!act || !nue) return toast('Completá el PIN actual y el nuevo');
@@ -1284,21 +1299,122 @@ function adminExtrasHtml() {
     <label>Nota <small>(interna, opcional)</small></label><input data-k="nota" maxlength="80" value="${esc(x.nota)}">
     <div class="row" style="margin-top:10px"><button class="btn small danger" type="button" data-del-ex="${i}">Borrar</button></div>
   </div>`).join('');
-  return `<div class="adm-sec card" id="secDias"><h2 style="font-size:19px">Agregar o sacar días de turnos</h2>
-    <h3 style="font-size:17px;margin:6px 0">➕ Agregar días u horarios extra</h3>
-    <p class="hint" style="margin:0 0 10px">Para abrir turnos fuera de tu horario habitual (un sábado, un feriado, una tarde extra). Se suman a los horarios de siempre, aunque ese día esté cerrado. Los turnos que ya tengas en Google Calendar se respetan.</p>
-    ${items || '<p class="hint">No hay días extra cargados.</p>'}
-    <div class="row"><button class="btn small secondary" type="button" id="addEx">+ Agregar día extra</button><button class="btn small" type="button" id="saveEx">Guardar días extra</button></div>
+  const bitems = (A.bloqueos || []).map((x, i) => `<div class="ed" data-bq="${i}">
+    <div class="grid">
+      <div><label>Desde (fecha)</label><input type="date" data-k="desde" min="${tY}" value="${esc(x.desde)}"></div>
+      <div><label>Hasta (fecha) <small>(un día: igual)</small></label><input type="date" data-k="hasta" min="${tY}" value="${esc(x.hasta)}"></div>
+      <div><label>Hora desde <small>(vacío = todo el día)</small></label><input type="time" data-k="horaDesde" value="${esc(x.horaDesde)}"></div>
+      <div><label>Hora hasta</label><input type="time" data-k="horaHasta" value="${esc(x.horaHasta)}"></div>
+      <div><label>Servicio</label><select data-k="servicio">${[['ambos', 'Neurología y Clínica'], ['neuro', 'Solo Neurología'], ['domi', 'Solo Clínica general']].map(o => '<option value="' + o[0] + '" ' + (x.servicio === o[0] ? 'selected' : '') + '>' + o[1] + '</option>').join('')}</select></div>
+      <div><label>Motivo <small>(interno)</small></label><input data-k="motivo" maxlength="60" value="${esc(x.motivo)}" placeholder="Trámite, congreso…"></div>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn small danger" type="button" data-del-bq="${i}">Borrar (vuelve a abrirse)</button></div>
+  </div>`).join('');
+  const sacar = A.horDisp ? `
+    <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días u horas</h3>
+    <p class="hint" style="margin:0 0 10px">Para no trabajar un día, unas horas o varios días seguidos (por ejemplo, el martes 18 de 9 a 12, o del 20 al 24 completo). Dejá las horas vacías para sacar el día entero. Los turnos ya reservados <b>no</b> se cancelan solos: cancelalos arriba si hace falta.</p>
+    ${bitems || '<p class="hint">No hay días ni horas sacados.</p>'}
+    <div class="row"><button class="btn small secondary" type="button" id="addBq">+ Sacar un día u horario</button><button class="btn small" type="button" id="saveBq">Guardar días/horas sacados</button></div>` : `
     <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días (cerrar)</h3>
-    <p class="hint" style="margin:0 0 10px">Cierra todos los turnos de esas fechas (Neurología y Domicilio). Los turnos ya reservados <b>no</b> se cancelan solos: cancelalos arriba si hace falta. Para cerrar con un colega que te reemplace, usá "Vacaciones, ausencias y reemplazos".</p>
+    <div class="note warn">Para poder sacar también <b>horas</b> sueltas, actualizá el servidor (Code.gs) a la última versión.</div>
     <div class="ed"><div class="grid">
       <div><label>Desde</label><input type="date" id="cerrDesde" min="${tY}"></div>
       <div><label>Hasta <small>(un solo día: misma fecha)</small></label><input type="date" id="cerrHasta" min="${tY}"></div>
     </div>
     <label>Motivo <small>(interno)</small></label><input id="cerrMotivo" maxlength="60" placeholder="Congreso, feriado…">
-    <div class="row" style="margin-top:10px"><button class="btn small" type="button" id="cerrBtn">Cerrar esos días</button></div></div>
-    <p class="hint">Los días cerrados aparecen (y se pueden reabrir borrándolos) en "Vacaciones, ausencias y reemplazos".</p>
+    <div class="row" style="margin-top:10px"><button class="btn small" type="button" id="cerrBtn">Cerrar esos días</button></div></div>`;
+  return `<div class="adm-sec card" id="secDias"><h2 style="font-size:19px">Cambios en fechas puntuales</h2>
+    <p class="hint" style="margin:0 0 6px">Para cambiar <b>solo una fecha o una semana</b>. Para cambiar tu horario de siempre, usá "Horario de trabajo semanal".</p>
+    <h3 style="font-size:17px;margin:6px 0">➕ Agregar días u horarios extra</h3>
+    <p class="hint" style="margin:0 0 10px">Para abrir turnos fuera de tu horario habitual (un domingo, un feriado, una tarde extra). Se suman a los horarios de siempre, aunque ese día esté cerrado. Los turnos que ya tengas en Google Calendar se respetan.</p>
+    ${items || '<p class="hint">No hay días extra cargados.</p>'}
+    <div class="row"><button class="btn small secondary" type="button" id="addEx">+ Agregar día extra</button><button class="btn small" type="button" id="saveEx">Guardar días extra</button></div>
+    ${sacar}
   </div>`;
+}
+
+/* ==================== HORARIO DE TRABAJO SEMANAL (panel) ==================== */
+const DIAS_ORDEN = [1, 2, 3, 4, 5, 6, 0];
+const hmToM = hm => +hm.slice(0, 2) * 60 + +hm.slice(3);
+const mToHm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+function previewTurnos(svc, r) {
+  const dur = svc === 'neuro' ? 40 : 30, out = [];
+  if (!/^\d\d:\d\d$/.test(r.desde || '') || !/^\d\d:\d\d$/.test(r.hasta || '')) return out;
+  for (let m = hmToM(r.desde); m + dur <= hmToM(r.hasta); m += dur) out.push(mToHm(m));
+  return out;
+}
+function adminHorarioHtml() {
+  if (!A.horDisp) return `<div class="adm-sec card" id="secHorario"><h2 style="font-size:19px">🗓️ Horario de trabajo semanal</h2>
+    <div class="note warn">Para editar tu horario desde acá, primero actualizá el servidor (Code.gs) a la última versión.</div></div>`;
+  A.horOpen = A.horOpen || {};
+  const svc = A.horSvc, h = A.horDraft[svc], DN = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const filas = DIAS_ORDEN.map(dw => {
+    const rs = h[dw] || [];
+    const franjas = rs.map((r, j) => {
+      const tt = previewTurnos(svc, r);
+      return `<div class="hr-fr" data-dw="${dw}" data-j="${j}">
+        <label>Desde<input type="time" data-hk="desde" value="${esc(r.desde)}"></label>
+        <label>Hasta<input type="time" data-hk="hasta" value="${esc(r.hasta)}"></label>
+        ${svc === 'neuro' ? `<label title="Con el modo compacto, la app ofrece primero este horario y va abriendo los de al lado a medida que se ocupan">1er turno ofrecido<input type="time" data-hk="ancla" value="${esc(r.ancla || '')}"></label>` : ''}
+        <button class="btn small danger" type="button" data-hdel="${dw}:${j}" aria-label="Quitar franja">✕</button>
+        <div class="hint hr-prev">${tt.length ? tt.length + ' turno' + (tt.length > 1 ? 's' : '') + ': ' + tt.join(', ') : '⚠ no entra ningún turno'}</div>
+      </div>`;
+    }).join('');
+    const resumen = rs.length ? rs.map(r => esc(r.desde) + '–' + esc(r.hasta)).join(' · ') : 'No trabaja';
+    return `<details class="hr-dia ${rs.length ? '' : 'off'}" data-hopen="${dw}" ${A.horOpen[svc + dw] ? 'open' : ''}>
+      <summary class="hr-cab"><b>${DN[dw]}</b><span class="hr-res">${resumen}</span><span class="hr-ed">editar</span></summary>
+      ${franjas}
+      <button class="btn small secondary" type="button" data-hadd="${dw}" style="margin-top:8px">+ Agregar franja ${rs.length ? '' : '(empezar a trabajar este día)'}</button>
+    </details>`;
+  }).join('');
+  return `<div class="adm-sec card" id="secHorario"><h2 style="font-size:19px">🗓️ Horario de trabajo semanal (para siempre)</h2>
+    <p class="hint" style="margin:0 0 10px">Tu horario de todas las semanas. Tocá un día para editarlo: podés agregar o sacar franjas horarias, y empezar a trabajar días nuevos (también domingo). Un día sin franjas = no trabajás ese día. Para cambiar <b>una sola fecha o semana</b>, usá "Cambios en fechas puntuales". Los turnos ya reservados no se tocan.</p>
+    <div class="seg" role="group" aria-label="Servicio" style="margin:0 0 10px">
+      <button type="button" data-hsvc="neuro" class="${svc === 'neuro' ? 'on' : ''}">🧠 Neurología (40 min)</button>
+      <button type="button" data-hsvc="domi" class="${svc === 'domi' ? 'on' : ''}">🏠 Clínica general (30/40 min)</button>
+    </div>
+    ${svc === 'domi' ? `<label class="f" for="hrDem" style="margin-top:0">Para direcciones a más de 2 km, el primer turno del día empieza (minutos más tarde)</label>
+      <input class="in" id="hrDem" type="number" min="0" max="240" step="10" value="${Number(A.horDraft.lejosDemora || 0)}" style="max-width:140px">
+      <p class="hint">Hasta 2 km: turnos cada 30 min. Más lejos: cada 40 min.</p>` : ''}
+    ${filas}
+    ${A.horDirty ? '<div class="note warn">Tenés cambios sin guardar.</div>' : ''}
+    <div class="row" style="margin-top:10px"><button class="btn" type="button" id="hrSave">Guardar horario semanal</button></div>
+    <div class="row" style="margin-top:8px"><button class="btn small ghost" type="button" id="hrDesc" ${A.horDirty ? '' : 'disabled'}>Descartar cambios</button><button class="btn small ghost" type="button" id="hrOrig" ${A.horEdit ? '' : 'disabled'}>Volver al horario original</button></div>
+  </div>`;
+}
+
+function bindHorario() {
+  if (!A.horDisp) return;
+  const sync = () => {
+    app.querySelectorAll('.hr-fr').forEach(f => {
+      const dw = f.dataset.dw, j = +f.dataset.j, r = A.horDraft[A.horSvc][dw][j];
+      f.querySelectorAll('[data-hk]').forEach(i => { const k = i.dataset.hk, v = i.value; if (k === 'ancla' && !v) delete r.ancla; else r[k] = v; });
+    });
+    const dm = $('#hrDem'); if (dm) A.horDraft.lejosDemora = Number(dm.value) || 0;
+    A.horDirty = JSON.stringify(A.horDraft) !== JSON.stringify(A.horario);
+  };
+  const re = () => { renderAdmin(); location.hash = 'secHorario'; };
+  app.querySelectorAll('.hr-fr input, #hrDem').forEach(i => i.addEventListener('change', () => { sync(); re(); }));
+  app.querySelectorAll('[data-hopen]').forEach(d => d.addEventListener('toggle', () => { A.horOpen[A.horSvc + d.dataset.hopen] = d.open; }));
+  app.querySelectorAll('[data-hsvc]').forEach(b => b.onclick = () => { sync(); A.horSvc = b.dataset.hsvc; re(); });
+  app.querySelectorAll('[data-hadd]').forEach(b => b.onclick = () => {
+    sync(); A.horOpen[A.horSvc + b.dataset.hadd] = true; const dw = b.dataset.hadd, l = A.horDraft[A.horSvc][dw] = A.horDraft[A.horSvc][dw] || [];
+    const last = l[l.length - 1], ini = last ? Math.min(hmToM(last.hasta) + 60, 21 * 60) : 9 * 60;
+    l.push({ desde: mToHm(ini), hasta: mToHm(Math.min(ini + 180, 23 * 60)) }); A.horDirty = true; re();
+  });
+  app.querySelectorAll('[data-hdel]').forEach(b => b.onclick = () => { sync(); const [dw, j] = b.dataset.hdel.split(':'); A.horDraft[A.horSvc][dw].splice(+j, 1); A.horDirty = JSON.stringify(A.horDraft) !== JSON.stringify(A.horario); re(); });
+  $('#hrSave').onclick = async () => {
+    sync();
+    const r = await api('admin_horario', { horario: A.horDraft });
+    if (!r.ok) return toast(r.error);
+    A.horario = r.horario; A.horDraft = JSON.parse(JSON.stringify(r.horario)); A.horEdit = r.horarioEditado; A.horDirty = false; re(); toast('Horario semanal guardado');
+  };
+  $('#hrDesc').onclick = () => { A.horDraft = JSON.parse(JSON.stringify(A.horario)); A.horDirty = false; re(); toast('Cambios descartados'); };
+  $('#hrOrig').onclick = () => ask('¿Volver al horario original?', 'Se borra tu horario editado y vuelven los horarios con los que arrancó la app.', 'Sí, volver', async () => {
+    const r = await api('admin_horario', { restaurar: true });
+    if (!r.ok) return toast(r.error);
+    A.horario = r.horario; A.horDraft = JSON.parse(JSON.stringify(r.horario)); A.horEdit = false; A.horDirty = false; re(); toast('Horario original restaurado');
+  });
 }
 
 function bindExtras() {
@@ -1311,7 +1427,27 @@ function bindExtras() {
     if (!r.ok) return toast(r.error);
     A.extras = r.extras; renderAdmin(); location.hash = 'secDias'; toast('Días extra guardados');
   };
-  $('#cerrBtn').onclick = () => {
+  const syncBq = () => { readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c)); };
+  const addBq = $('#addBq');
+  if (addBq) {
+    addBq.onclick = () => { syncBq(); A.bloqueos.push({ id: '', desde: '', hasta: '', servicio: 'ambos', horaDesde: '', horaHasta: '', motivo: '' }); renderAdmin(); location.hash = 'secDias'; };
+    app.querySelectorAll('[data-del-bq]').forEach(b => b.onclick = () => ask('¿Borrar este bloqueo?', 'Ese día u horario vuelve a ofrecerse cuando toques "Guardar días/horas sacados".', 'Sí, borrar', () => { syncBq(); A.bloqueos.splice(Number(b.dataset.delBq), 1); renderAdmin(); location.hash = 'secDias'; }));
+    $('#saveBq').onclick = async () => {
+      syncBq();
+      const bq = A.bloqueos.map(x => Object.assign({}, x, { hasta: x.hasta || x.desde }));
+      const enRango = r => bq.some(x => r.ymd >= x.desde && r.ymd <= x.hasta && (x.servicio === 'ambos' || x.servicio === r.servicio) &&
+        (!x.horaDesde || (r.hm < x.horaHasta && r.hmEnd > x.horaDesde)));
+      const reservados = A.rows.filter(r => r.estado === 'activo' && enRango(r)).length;
+      const guardar = async () => {
+        const r = await api('admin_bloqueos', { bloqueos: bq });
+        if (!r.ok) return toast(r.error);
+        A.bloqueos = r.bloqueos; renderAdmin(); location.hash = 'secDias'; toast('Días/horas sacados guardados');
+      };
+      if (reservados) ask('Ojo: hay turnos reservados', 'Ya tenés ' + reservados + ' turno(s) reservado(s) en esos días/horas. No se cancelan solos: si hace falta, cancelalos arriba. ¿Guardar igual?', 'Sí, guardar', guardar);
+      else guardar();
+    };
+  }
+  const cerrBtn = $('#cerrBtn'); if (cerrBtn) cerrBtn.onclick = () => {
     const d = $('#cerrDesde').value, h = $('#cerrHasta').value || d;
     if (!d) return toast('Elegí la fecha desde');
     if (h < d) return toast('La fecha "hasta" es anterior a "desde"');
@@ -1362,7 +1498,10 @@ function bindTextos() {
 
 /* ==================== MODO DEMOSTRACIÓN ==================== */
 const Demo = {
-  db: [], pin: '1234', sena: 35000, precio: 70000, precioD: null, senaD: null, extras: [], textos: {},
+  db: [], pin: '1234', sena: 35000, precio: 70000, precioD: null, senaD: null, extras: [], textos: {}, bloqueos: [], horario: null,
+  horOrig: { neuro: { 0: [], 1: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '17:00' }, { desde: '18:00', hasta: '18:40' }, { desde: '19:00', hasta: '19:40' }], 2: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '19:40' }], 3: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '19:40' }], 4: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '17:00' }, { desde: '18:00', hasta: '18:40' }, { desde: '19:00', hasta: '19:40' }], 5: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '17:00' }, { desde: '18:00', hasta: '18:40' }, { desde: '19:00', hasta: '19:40' }], 6: [{ desde: '10:00', hasta: '12:00' }] },
+    domi: { 0: [], 1: [{ desde: '09:00', hasta: '15:30' }], 2: [{ desde: '09:00', hasta: '19:00' }], 3: [{ desde: '09:00', hasta: '19:00' }], 4: [{ desde: '09:00', hasta: '15:30' }], 5: [{ desde: '09:00', hasta: '15:30' }], 6: [] }, lejosDemora: 60 },
+  hor() { return this.horario || this.horOrig; },
   precios() { return { neuro: { precio: this.precio, sena: this.sena }, domi: { precio: this.precioD == null ? this.precio : this.precioD, sena: this.senaD == null ? this.sena : this.senaD }, clinicaPropio: this.precioD != null }; },
   textosApp() { const o = {}; Object.keys(this.textos).forEach(k => { if (k.indexOf('mail_') !== 0) o[k] = this.textos[k]; }); return o; },
   avisos: [{ id: 'aviso-vac', v: '1', activo: true, popup: true, estilo: 'importante', titulo: 'Estoy de vacaciones hasta el 25 de octubre', texto: 'Las consultas clínicas y a domicilio las atiende mi colega <b>Luciano Bellotti</b>: podés sacar turno de domicilio normalmente desde esta app.<br>Los turnos de <span style="color:#5b3fa0">Neurología</span> se retoman desde el <span style="background-color:#fff176">lunes 26 de octubre</span>.', desde: '', hasta: '2026-10-25', linkTexto: '', linkUrl: '' }],
@@ -1381,15 +1520,17 @@ const Demo = {
       const cerrado = a && (service === 'neuro' ? a.neuro === 'cerrado' : a.domi === 'cerrado');
       const exHms = [];
       exD.forEach(x => { const st = service === 'neuro' ? 40 : 30; for (let m = +x.desde.slice(0, 2) * 60 + +x.desde.slice(3); m + st <= +x.hasta.slice(0, 2) * 60 + +x.hasta.slice(3); m += st) exHms.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')); });
+      const H = this.hor(), rgs = H[service][dow] || [], near = km != null && km <= 2;
       if (cerrado) {} else if (service === 'neuro') {
-        if (dow >= 1 && dow <= 5) hms = ['11:00', '15:00'].concat(dow === 1 || dow === 4 || dow === 5 ? ['18:00', '19:00'] : []);
-        if (dow === 6) hms = ['10:00'];
-      } else if (dow >= 1 && dow <= 5) {
-        const near = km != null && km <= 2, dur = near ? 30 : 40, end = dow === 2 || dow === 3 ? 19 * 60 : 15 * 60 + 30;
-        for (let m = near ? 540 : 600; m + dur <= end; m += dur) hms.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+        rgs.forEach(r => hms.push(r.ancla || r.desde)); // demo simplificado: el primer turno ofrecido de cada franja
+      } else {
+        const dur = near ? 30 : 40;
+        rgs.forEach((r, i) => { for (let m = hmToM(r.desde) + (i === 0 && !near ? Number(H.lejosDemora || 0) : 0); m + dur <= hmToM(r.hasta); m += dur) hms.push(mToHm(m)); });
       }
       hms = Array.from(new Set(hms.concat(exHms))).sort();
       const dur = service === 'neuro' ? 40 : (km != null && km <= 2 ? 30 : 40);
+      const bq = this.bloqueos.filter(x => x.desde <= ymd && ymd <= x.hasta && (x.servicio === 'ambos' || x.servicio === service));
+      hms = hms.filter(hm => !bq.some(x => !x.horaDesde || (hm < x.horaHasta && mToHm(hmToM(hm) + dur) > x.horaDesde)));
       const slots = hms.map(hm => {
         const [h, m] = hm.split(':').map(Number);
         const s = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m), e = new Date(s.getTime() + dur * 60000);
@@ -1432,10 +1573,15 @@ const Demo = {
       case 'cancel': { const b = this.db.find(x => x.token === p.token); b.estado = 'cancelado (tutor)'; return { ok: true, booking: this.pub(b) }; }
       case 'reschedule': { const b = this.db.find(x => x.token === p.token); const d = new Date(b.fin) - new Date(b.inicio); b.inicio = p.start; b.fin = new Date(new Date(p.start).getTime() + d).toISOString(); return { ok: true, booking: this.pub(b) }; }
       case 'admin_login': return p.pin === this.pin ? { ok: true } : { ok: false, error: 'PIN incorrecto. (En la demo es 1234)' };
-      case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias, extras: this.extras, textos: this.textos, textosMail: ['mail_confirmacion', 'mail_recordatorio', 'mail_pie'] } : { ok: false, error: 'PIN incorrecto.' };
+      case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias, extras: this.extras, textos: this.textos, textosMail: ['mail_confirmacion', 'mail_recordatorio', 'mail_pie'], horario: JSON.parse(JSON.stringify(this.hor())), horarioOriginal: this.horOrig, horarioEditado: !!this.horario, bloqueos: this.bloqueos } : { ok: false, error: 'PIN incorrecto.' };
       case 'admin_update': { const b = this.db.find(x => x.id === p.id); if (p.senaEstado) b.senaEstado = p.senaEstado; if (p.senaMonto) b.senaMonto = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precio) b.precio = Number(String(p.precio).replace(/\D/g, '')); if (p.notas !== undefined) b.notas = p.notas; return { ok: true, row: this.pub(b) }; }
       case 'admin_cancel': { const b = this.db.find(x => x.id === p.id); b.estado = 'cancelado (Sergio)'; return { ok: true, row: this.pub(b) }; }
       case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro !== undefined && p.senaNeuro !== '') this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi !== undefined && p.senaDomi !== '') this.senaD = n(p.senaDomi); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
+      case 'admin_horario': if (p.restaurar) { this.horario = null; return { ok: true, horario: this.hor(), horarioEditado: false }; }
+        for (const sv of ['neuro', 'domi']) for (let dw = 0; dw <= 6; dw++) for (const r of (p.horario[sv][dw] || [])) { if (!r.desde || !r.hasta) return { ok: false, error: 'Completá el horario "desde" y "hasta".' }; if (r.desde >= r.hasta) return { ok: false, error: 'Hay un horario al revés (' + r.desde + '–' + r.hasta + ').' }; }
+        this.horario = JSON.parse(JSON.stringify(p.horario)); return { ok: true, horario: this.horario, horarioEditado: true };
+      case 'admin_bloqueos': for (const x of p.bloqueos) { if (!x.desde) return { ok: false, error: 'Cada bloqueo necesita fecha.' }; if ((x.horaDesde || x.horaHasta) && !(x.horaDesde && x.horaHasta)) return { ok: false, error: 'Completá las dos horas, o dejá las dos vacías para todo el día.' }; }
+        this.bloqueos = p.bloqueos.map((x, i) => Object.assign({}, x, { id: x.id || 'bq' + i, hasta: x.hasta || x.desde })); return { ok: true, bloqueos: this.bloqueos };
       case 'admin_extras': this.extras = p.extras.map((x, i) => Object.assign({}, x, { id: x.id || 'ex' + i })); return { ok: true, extras: this.extras };
       case 'admin_textos': this.textos = p.textos; return { ok: true, textos: this.textos };
       case 'admin_pin': if (p.pin !== this.pin) return { ok: false, error: 'PIN incorrecto.' }; if (p.actual !== this.pin) return { ok: false, error: 'El PIN actual no es correcto.' }; if (p.nuevo !== p.repetir) return { ok: false, error: 'El PIN nuevo y su repetición no coinciden.' }; this.pin = p.nuevo; return { ok: true };
