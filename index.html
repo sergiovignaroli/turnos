@@ -179,6 +179,32 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .price-edit .in{background:#fff}
 .hr-dia{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 8px;background:#fff}
 .hr-dia.off{background:#f6f8f9}
+.bk{border:2px solid var(--brand-2);border-radius:16px;padding:14px;margin:4px 0 18px;background:#fbfefe}
+.bk-modo{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 12px}
+.bk-modo button{border:2px solid var(--line);background:#fff;border-radius:12px;min-height:48px;font-weight:800;font-size:15px;color:var(--ink);cursor:pointer;padding:6px}
+.bk-modo button.on{border-color:var(--brand);background:var(--brand);color:#fff}
+.bk-modo button.on.sacar{border-color:#b3261e;background:#b3261e}
+.cal-h{display:flex;align-items:center;justify-content:space-between;margin:6px 0}
+.cal-h b{font-size:16px}
+.cal-h button{border:1px solid var(--line);background:#fff;border-radius:10px;min-width:44px;min-height:40px;font-size:20px;cursor:pointer;color:var(--brand)}
+.cal-h button:disabled{opacity:.3;cursor:default}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal span{font-size:12px;font-weight:700;color:var(--muted);text-align:center;padding:2px 0}
+.cal button{min-height:42px;border:1px solid var(--line);background:#fff;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink);padding:0}
+.cal button:disabled{background:transparent;border-color:transparent;color:#c4cbce;cursor:default}
+.cal button.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+.cal.sacar button.sel{background:#b3261e;border-color:#b3261e}
+.cal button.hoy{outline:2px solid var(--brand-2);outline-offset:-3px}
+.bk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.bk-chips button{border:0;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:6px 10px;font-weight:700;font-size:14px;cursor:pointer}
+.bk-fr{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:flex-end;margin:6px 0}
+.bk-fr{flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:8px}
+.bk-fr label{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--muted);margin:0;flex:1 1 0;min-width:0}
+.bk-fr input{width:100%;min-width:0;padding-left:8px;padding-right:4px;font-size:17px}
+.bk-fr .bk-q{flex:0 0 100%;text-align:right}
+.bk-fr .bk-q button{background:none;border:0;color:var(--bad);font-weight:700;font-size:14px;cursor:pointer;min-height:32px;padding:0 4px}
+.sel-row{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin:0 0 6px;color:var(--muted)}
+.sel-row input{width:22px;height:22px}
 .hr-cab{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;min-height:40px}
 .hr-cab::-webkit-details-marker{display:none}
 .hr-cab b{min-width:84px}
@@ -617,6 +643,7 @@ function viewForm(errMsg, errFields) {
       ${field('apellido', 'Apellido', { req: true, ac: 'family-name', max: 50 })}
       ${field('telefono', 'Teléfono / WhatsApp', { req: !adm, type: 'tel', ac: 'tel', im: 'tel', max: 25, ph: 'Ej: 341 555-1234' })}
       ${field('email', 'Mail', { req: neuro && !adm, type: 'email', ac: 'email', im: 'email', max: 80, ph: 'Ej: nombre@gmail.com', hint: 'Ahí te llega la confirmación y el recordatorio.' })}
+      <div id="mailSug" aria-live="polite"></div>
       ${neuro ? '' : `
         <label class="f">Dirección</label>
         <div class="copybox"><span>${esc(S.address)}</span><button type="button" class="btn small ghost" id="chgAddr">Cambiar</button></div>
@@ -630,7 +657,45 @@ function viewForm(errMsg, errFields) {
   const ca = $('#chgAddr'); if (ca) ca.onclick = () => { saveForm(); viewAddress(); };
   (errFields || []).forEach(f => { const el = $('#f_' + f); if (el) el.classList.add('err'); });
   $('#dataForm').onsubmit = e => { e.preventDefault(); saveForm(); submitBooking(); };
+  const fm = $('#f_email');
+  if (fm) { let tm; fm.addEventListener('input', () => { S.form.mailOk = false; clearTimeout(tm); tm = setTimeout(() => mailSugBox(fm.value.trim()), 700); }); if (fm.value) mailSugBox(fm.value.trim()); }
   if (errMsg) { const fe = $('#formErr'); if (fe) fe.scrollIntoView({ block: 'center' }); } else scrollTop();
+}
+
+/* ---- Mails mal escritos (gmail.con, hotmial.com…): misma lista que el servidor ---- */
+const MAIL_DOMS = ['gmail.com', 'hotmail.com', 'hotmail.com.ar', 'hotmail.es', 'outlook.com', 'outlook.com.ar', 'outlook.es', 'live.com', 'live.com.ar',
+  'yahoo.com', 'yahoo.com.ar', 'yahoo.es', 'icloud.com', 'me.com', 'mail.com', 'email.com', 'ymail.com', 'msn.com', 'aol.com',
+  'fibertel.com.ar', 'arnet.com.ar', 'speedy.com.ar', 'live.com.mx', 'protonmail.com', 'proton.me', 'gmx.com', 'uol.com', 'uol.com.ar', 'yahoo.com.mx', 'hotmail.com.mx'];
+const TLD_MAL = /\.(con|cmo|cpm|vom|xom|comm|coom|ocm|cim|con\.ar|cmo\.ar|vom\.ar)$/;
+function levenshtein(a, b) {
+  const m = a.length, n = b.length, d = [];
+  for (let i = 0; i <= m; i++) d[i] = [i];
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+function mailTypoDuro(email) { return TLD_MAL.test(String(email).toLowerCase().split('@')[1] || ''); }
+function mailSugerencia(email) {
+  const e = String(email || '').trim().toLowerCase(), at = e.lastIndexOf('@');
+  if (at < 1) return '';
+  const user = e.slice(0, at), dom = e.slice(at + 1);
+  if (MAIL_DOMS.indexOf(dom) >= 0) return '';
+  let best = '', bd = 9;
+  MAIL_DOMS.forEach(k => { const x = levenshtein(dom, k); if (x < bd) { bd = x; best = k; } });
+  if (best && bd <= (dom.length <= 7 ? 1 : 2)) return user + '@' + best;
+  if (TLD_MAL.test(dom)) return user + '@' + dom.replace(TLD_MAL, m => m.indexOf('ar') >= 0 ? '.com.ar' : '.com');
+  return '';
+}
+function mailSugBox(v) {
+  const box = $('#mailSug'); if (!box) return;
+  const sug = v && /@/.test(v) ? mailSugerencia(v) : '';
+  if (!sug || (S.form.mailOk && !mailTypoDuro(v))) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="note warn" style="margin:-4px 0 14px">¿Quisiste decir <b>' + esc(sug) + '</b>?<div class="row" style="margin-top:8px">' +
+    '<button type="button" class="btn small" id="sugSi">Sí, corregir</button>' +
+    (mailTypoDuro(v) ? '' : '<button type="button" class="btn small ghost" id="sugNo">No, está bien así</button>') + '</div></div>';
+  $('#sugSi').onclick = () => { const fm = $('#f_email'); fm.value = sug; S.form.email = sug; S.form.mailOk = false; fm.classList.remove('err'); box.innerHTML = ''; };
+  const no = $('#sugNo'); if (no) no.onclick = () => { S.form.mailOk = true; const fm = $('#f_email'); if (fm) fm.classList.remove('err'); box.innerHTML = ''; };
 }
 
 function saveForm() {
@@ -649,12 +714,14 @@ async function submitBooking() {
   if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email)) miss.push('email');
   else if (neuro && !adm && !f.email) miss.push('email');
   if (miss.length) return viewForm('Revisá los campos marcados en rojo.', miss);
+  const sugM = f.email ? mailSugerencia(f.email) : '';
+  if (sugM && !(f.mailOk && !mailTypoDuro(f.email))) return viewForm('Revisá tu mail: ¿quisiste decir ' + sugM + '? Si está mal escrito no te llegan la confirmación ni los recordatorios.', ['email']);
   const btn = $('#okBtn'); if (btn) { btn.disabled = true; btn.textContent = 'Reservando…'; }
   if (!S.bookNonce) S.bookNonce = nonce();
   const r = await api('book', {
     service: S.service, start: S.slot.start, nonce: S.bookNonce,
     mascota: f.mascota, motivo: f.motivo, derivadoPor: f.derivadoPor || '', nombre: f.nombre, apellido: f.apellido,
-    telefono: f.telefono, email: f.email || '', direccion: neuro ? '' : S.address, detalle: f.detalle || '', website: f.website || ''
+    telefono: f.telefono, email: f.email || '', mailOk: !!f.mailOk, direccion: neuro ? '' : S.address, detalle: f.detalle || '', website: f.website || ''
   });
   if (!r.ok) {
     if (r.code === 'TAKEN') { S.bookNonce = null; await loadSlots(true); return viewSlots(r.error); }
@@ -1290,6 +1357,7 @@ function bindAusencias() {
 function adminExtrasHtml() {
   const hoy = new Date(); const tY = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
   const items = A.extras.map((x, i) => `<div class="ed" data-ex="${i}">
+    <label class="sel-row"><input type="checkbox" class="sel-ex" value="${i}"> Seleccionar</label>
     <div class="grid">
       <div><label>Fecha</label><input type="date" data-k="fecha" min="${tY}" value="${esc(x.fecha)}"></div>
       <div><label>Servicio</label><select data-k="servicio"><option value="neuro" ${x.servicio === 'neuro' ? 'selected' : ''}>Neurología (CEVET)</option><option value="domi" ${x.servicio === 'domi' ? 'selected' : ''}>Clínica a domicilio</option></select></div>
@@ -1300,6 +1368,7 @@ function adminExtrasHtml() {
     <div class="row" style="margin-top:10px"><button class="btn small danger" type="button" data-del-ex="${i}">Borrar</button></div>
   </div>`).join('');
   const bitems = (A.bloqueos || []).map((x, i) => `<div class="ed" data-bq="${i}">
+    <label class="sel-row"><input type="checkbox" class="sel-bq" value="${i}"> Seleccionar</label>
     <div class="grid">
       <div><label>Desde (fecha)</label><input type="date" data-k="desde" min="${tY}" value="${esc(x.desde)}"></div>
       <div><label>Hasta (fecha) <small>(un día: igual)</small></label><input type="date" data-k="hasta" min="${tY}" value="${esc(x.hasta)}"></div>
@@ -1314,6 +1383,7 @@ function adminExtrasHtml() {
     <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días u horas</h3>
     <p class="hint" style="margin:0 0 10px">Para no trabajar un día, unas horas o varios días seguidos (por ejemplo, el martes 18 de 9 a 12, o del 20 al 24 completo). Dejá las horas vacías para sacar el día entero. Los turnos ya reservados <b>no</b> se cancelan solos: cancelalos arriba si hace falta.</p>
     ${bitems || '<p class="hint">No hay días ni horas sacados.</p>'}
+    ${(A.bloqueos || []).length > 1 ? '<div class="row"><button class="btn small ghost" type="button" id="allBq">Seleccionar todos</button><button class="btn small danger" type="button" id="delSelBq">Borrar seleccionados</button></div>' : ''}
     <div class="row"><button class="btn small secondary" type="button" id="addBq">+ Sacar un día u horario</button><button class="btn small" type="button" id="saveBq">Guardar días/horas sacados</button></div>` : `
     <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días (cerrar)</h3>
     <div class="note warn">Para poder sacar también <b>horas</b> sueltas, actualizá el servidor (Code.gs) a la última versión.</div>
@@ -1325,9 +1395,11 @@ function adminExtrasHtml() {
     <div class="row" style="margin-top:10px"><button class="btn small" type="button" id="cerrBtn">Cerrar esos días</button></div></div>`;
   return `<div class="adm-sec card" id="secDias"><h2 style="font-size:19px">Cambios en fechas puntuales</h2>
     <p class="hint" style="margin:0 0 6px">Para cambiar <b>solo una fecha o una semana</b>. Para cambiar tu horario de siempre, usá "Horario de trabajo semanal".</p>
+    ${A.horDisp ? '<div class="bk" id="bulkBox"></div>' : ''}
     <h3 style="font-size:17px;margin:6px 0">➕ Agregar días u horarios extra</h3>
     <p class="hint" style="margin:0 0 10px">Para abrir turnos fuera de tu horario habitual (un domingo, un feriado, una tarde extra). Se suman a los horarios de siempre, aunque ese día esté cerrado. Los turnos que ya tengas en Google Calendar se respetan.</p>
     ${items || '<p class="hint">No hay días extra cargados.</p>'}
+    ${A.extras.length > 1 ? '<div class="row"><button class="btn small ghost" type="button" id="allEx">Seleccionar todos</button><button class="btn small danger" type="button" id="delSelEx">Borrar seleccionados</button></div>' : ''}
     <div class="row"><button class="btn small secondary" type="button" id="addEx">+ Agregar día extra</button><button class="btn small" type="button" id="saveEx">Guardar días extra</button></div>
     ${sacar}
   </div>`;
@@ -1417,8 +1489,141 @@ function bindHorario() {
   });
 }
 
+/* ---- Carga de varios días a la vez (agregar o sacar, salteados) ---- */
+const ymdLocal = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+function fechaCorta(ymd) { const d = new Date(ymd + 'T12:00:00'); return DIAS_CORTO[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1); }
+function bulkState() {
+  if (!A.bulk) { const h = new Date(); A.bulk = { modo: 'agregar', svc: 'neuro', fechas: [], mes: h.getFullYear() * 12 + h.getMonth(), todoDia: true, franjas: [{ desde: '10:00', hasta: '12:00' }], nota: '' }; }
+  return A.bulk;
+}
+function bulkHtml() {
+  const B = bulkState(), sacar = B.modo === 'sacar';
+  const hoy = new Date(), hoyY = ymdLocal(hoy), max = new Date(hoy.getTime() + 74 * 864e5), maxY = ymdLocal(max);
+  const mesMin = hoy.getFullYear() * 12 + hoy.getMonth(), mesMax = max.getFullYear() * 12 + max.getMonth();
+  const y = Math.floor(B.mes / 12), m = B.mes % 12, primero = new Date(y, m, 1), dias = new Date(y, m + 1, 0).getDate();
+  let cal = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => '<span>' + d + '</span>').join('');
+  for (let k = 0; k < (primero.getDay() + 6) % 7; k++) cal += '<span></span>';
+  for (let d = 1; d <= dias; d++) {
+    const f = ymdLocal(new Date(y, m, d)), off = f < hoyY || f > maxY;
+    cal += '<button type="button" data-cal="' + f + '" class="' + (B.fechas.indexOf(f) >= 0 ? 'sel ' : '') + (f === hoyY ? 'hoy' : '') + '"' + (off ? ' disabled' : '') + ' aria-pressed="' + (B.fechas.indexOf(f) >= 0) + '">' + d + '</button>';
+  }
+  const mesTxt = (t => t.charAt(0).toUpperCase() + t.slice(1))(primero.toLocaleDateString('es-AR', { month: 'long' })) + ' ' + y;
+  const fr = B.franjas.map((x, i) => '<div class="bk-fr" data-bkfr="' + i + '"><label>Desde<input class="in" type="time" data-f="desde" value="' + esc(x.desde) + '"></label><label>Hasta<input class="in" type="time" data-f="hasta" value="' + esc(x.hasta) + '"></label>' +
+    (B.franjas.length > 1 ? '<div class="bk-q"><button type="button" data-bkdel="' + i + '">✕ Quitar este horario</button></div>' : '') + '</div>').join('');
+  const svcOpts = (sacar ? [['ambos', 'Neurología y Clínica'], ['neuro', 'Solo Neurología'], ['domi', 'Solo Clínica general']] : [['neuro', 'Neurología (CEVET)'], ['domi', 'Clínica general a domicilio']])
+    .map(o => '<option value="' + o[0] + '"' + (B.svc === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('');
+  const n = B.fechas.length;
+  return `<h3 style="font-size:17px;margin:0 0 4px">⚡ Varios días a la vez</h3>
+    <p class="hint" style="margin:0 0 10px">Elegí qué querés hacer, tocá en el calendario todos los días que quieras (salteados o seguidos) y los horarios. Se guarda todo junto.</p>
+    <div class="bk-modo"><button type="button" data-modo="agregar" class="${!sacar ? 'on' : ''}">➕ Agregar horarios</button><button type="button" data-modo="sacar" class="sacar ${sacar ? 'on' : ''}">➖ Sacar días u horas</button></div>
+    <label>Servicio</label><select class="in" id="bkSvc">${svcOpts}</select>
+    <label style="margin-top:10px">Días <small>(tocá para marcar o desmarcar)</small></label>
+    <div class="cal-h"><button type="button" id="bkPrev" ${B.mes <= mesMin ? 'disabled' : ''} aria-label="Mes anterior">‹</button><b>${esc(mesTxt)}</b><button type="button" id="bkNext" ${B.mes >= mesMax ? 'disabled' : ''} aria-label="Mes siguiente">›</button></div>
+    <div class="cal ${sacar ? 'sacar' : ''}">${cal}</div>
+    ${n ? '<div class="bk-chips">' + B.fechas.map(f => '<button type="button" data-chip="' + f + '" title="Quitar">' + fechaCorta(f) + ' ✕</button>').join('') + '</div><div><button type="button" class="btn small ghost" style="width:auto" id="bkClr">Desmarcar todos</button></div>' : '<p class="hint" style="margin:8px 0">Todavía no marcaste días.</p>'}
+    ${sacar ? '<label class="sel-row" style="margin-top:12px;color:var(--ink)"><input type="checkbox" id="bkTodo" ' + (B.todoDia ? 'checked' : '') + '> Todo el día</label>' : ''}
+    ${!sacar || !B.todoDia ? '<label style="margin-top:10px">Horarios ' + (sacar ? 'a sacar' : 'a agregar') + ' <small>(en cada día marcado)</small></label>' + fr +
+      '<div><button type="button" class="btn small ghost" style="width:auto" id="bkAddFr">+ Otra franja</button></div>' +
+      (sacar ? '<p class="hint" style="margin:6px 0 0">Para sacar un solo turno, poné ese horario. Ej.: 11:00 a 11:40.</p>' : '<p class="hint" style="margin:6px 0 0">Turnos de ' + (B.svc === 'neuro' ? '40' : '30') + ' min dentro de cada franja.</p>') : ''}
+    <label style="margin-top:10px">${sacar ? 'Motivo' : 'Nota'} <small>(interno, opcional)</small></label><input class="in" id="bkNota" maxlength="60" value="${esc(B.nota)}" placeholder="${sacar ? 'Congreso, trámite…' : 'Ej: guardia de domingo'}">
+    <button type="button" class="btn ${sacar ? 'danger' : ''}" id="bkGo" style="margin-top:12px" ${n ? '' : 'disabled'}>${n ? (sacar ? 'Sacar' : 'Agregar') + ' en ' + n + ' día' + (n > 1 ? 's' : '') : 'Marcá al menos un día'}</button>`;
+}
+function syncBulk() {
+  const B = bulkState();
+  const sv = $('#bkSvc'); if (sv) B.svc = sv.value;
+  const no = $('#bkNota'); if (no) B.nota = no.value.trim();
+  const td = $('#bkTodo'); if (td) B.todoDia = td.checked;
+  app.querySelectorAll('[data-bkfr]').forEach(el => { const i = +el.dataset.bkfr; B.franjas[i] = { desde: el.querySelector('[data-f=desde]').value, hasta: el.querySelector('[data-f=hasta]').value }; });
+}
+function paintBulk() {
+  const box = $('#bulkBox'); if (!box) return;
+  box.innerHTML = bulkHtml();
+  const B = bulkState(), re = () => { syncBulk(); paintBulk(); };
+  box.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { syncBulk(); B.modo = b.dataset.modo; if (B.modo === 'agregar' && B.svc === 'ambos') B.svc = 'neuro'; paintBulk(); });
+  box.querySelectorAll('[data-cal]').forEach(b => b.onclick = () => { syncBulk(); const f = b.dataset.cal, i = B.fechas.indexOf(f); if (i >= 0) B.fechas.splice(i, 1); else B.fechas.push(f); B.fechas.sort(); paintBulk(); });
+  box.querySelectorAll('[data-chip]').forEach(b => b.onclick = () => { syncBulk(); B.fechas = B.fechas.filter(f => f !== b.dataset.chip); paintBulk(); });
+  box.querySelectorAll('[data-bkdel]').forEach(b => b.onclick = () => { syncBulk(); B.franjas.splice(+b.dataset.bkdel, 1); paintBulk(); });
+  const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+  on('#bkPrev', () => { syncBulk(); B.mes--; paintBulk(); });
+  on('#bkNext', () => { syncBulk(); B.mes++; paintBulk(); });
+  on('#bkClr', () => { syncBulk(); B.fechas = []; paintBulk(); });
+  on('#bkAddFr', () => { syncBulk(); const u = B.franjas[B.franjas.length - 1]; B.franjas.push({ desde: u && u.hasta ? u.hasta : '15:00', hasta: '' }); paintBulk(); });
+  const td = $('#bkTodo'); if (td) td.onchange = re;
+  const sv = $('#bkSvc'); if (sv) sv.onchange = re;
+  on('#bkGo', bulkApply);
+}
+async function bulkApply() {
+  syncBulk();
+  const B = bulkState(), sacar = B.modo === 'sacar', n = B.fechas.length;
+  if (!n) return toast('Marcá al menos un día');
+  const franjas = (sacar && B.todoDia) ? [] : B.franjas;
+  if (!(sacar && B.todoDia)) {
+    if (!franjas.length) return toast('Agregá al menos un horario');
+    const dur = B.svc === 'neuro' ? 40 : 30;
+    for (const x of franjas) {
+      if (!/^\d\d:\d\d$/.test(x.desde || '') || !/^\d\d:\d\d$/.test(x.hasta || '')) return toast('Completá desde y hasta en cada horario');
+      if (x.desde >= x.hasta) return toast('El horario ' + x.desde + '–' + x.hasta + ' está al revés');
+      if (!sacar && hmToM(x.hasta) - hmToM(x.desde) < dur) return toast('En ' + x.desde + '–' + x.hasta + ' no entra ni un turno (' + dur + ' min)');
+    }
+    const ord = franjas.slice().sort((a, b) => a.desde < b.desde ? -1 : 1);
+    for (let i = 1; i < ord.length; i++) if (ord[i].desde < ord[i - 1].hasta) return toast('Los horarios ' + ord[i - 1].desde + '–' + ord[i - 1].hasta + ' y ' + ord[i].desde + '–' + ord[i].hasta + ' se pisan');
+  }
+  const lista = B.fechas.map(fechaCorta).join(', ');
+  const hTxt = (sacar && B.todoDia) ? 'todo el día' : franjas.map(x => x.desde + '–' + x.hasta).join(' y ');
+  const svcTxt = { ambos: 'Neurología y Clínica', neuro: 'Neurología', domi: 'Clínica general' }[B.svc];
+  if (!sacar) {
+    readEditor('[data-ex]').forEach((c, i) => Object.assign(A.extras[i], c));
+    const nuevos = [];
+    B.fechas.forEach(f => franjas.forEach(x => nuevos.push({ id: '', fecha: f, servicio: B.svc, desde: x.desde, hasta: x.hasta, nota: B.nota })));
+    const todo = A.extras.concat(nuevos);
+    if (JSON.stringify(todo).length + 25 * todo.length > 8400) return toast('Son demasiados horarios extra juntos. Borrá algunos viejos o cargalos en dos veces.');
+    ask('¿Agregar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', lista + ' · de ' + hTxt + '. Se suman a tu horario de siempre.', 'Sí, agregar', async () => {
+      const r = await api('admin_extras', { extras: todo });
+      if (!r.ok) return toast(r.error);
+      A.extras = r.extras; A.bulk = null; renderAdmin(); location.hash = 'secDias'; toast('Listo: horarios agregados en ' + n + ' día' + (n > 1 ? 's' : ''));
+    });
+  } else {
+    readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c));
+    // días seguidos con los mismos horarios se guardan como un solo rango (ocupa menos lugar)
+    const tramos = []; let ini = null, prev = null;
+    B.fechas.forEach(f => {
+      if (prev && ymdLocal(new Date(new Date(prev + 'T12:00:00').getTime() + 864e5)) === f) prev = f;
+      else { if (ini) tramos.push([ini, prev]); ini = f; prev = f; }
+    });
+    if (ini) tramos.push([ini, prev]);
+    const nuevos = [];
+    tramos.forEach(t => (franjas.length ? franjas : [{ desde: '', hasta: '' }]).forEach(x => nuevos.push({ id: '', desde: t[0], hasta: t[1], servicio: B.svc, horaDesde: x.desde, horaHasta: x.hasta, motivo: B.nota })));
+    const todo = A.bloqueos.map(x => Object.assign({}, x, { hasta: x.hasta || x.desde })).concat(nuevos);
+    if (JSON.stringify(todo).length + 25 * todo.length > 8400) return toast('Son demasiados bloqueos juntos. Borrá algunos viejos o cargalos en dos veces.');
+    const enRango = r => nuevos.some(x => r.ymd >= x.desde && r.ymd <= x.hasta && (x.servicio === 'ambos' || x.servicio === r.servicio) && (!x.horaDesde || (r.hm < x.horaHasta && r.hmEnd > x.horaDesde)));
+    const res = A.rows.filter(r => r.estado === 'activo' && enRango(r)).length;
+    ask('¿Sacar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', lista + ' · ' + hTxt + '.' + (res ? ' Ojo: hay ' + res + ' turno(s) reservado(s) ahí; no se cancelan solos, cancelalos arriba si hace falta.' : ''), 'Sí, sacar', async () => {
+      const r = await api('admin_bloqueos', { bloqueos: todo });
+      if (!r.ok) return toast(r.error);
+      A.bloqueos = r.bloqueos; A.bulk = null; renderAdmin(); location.hash = 'secDias'; toast('Listo: sacado en ' + n + ' día' + (n > 1 ? 's' : ''));
+    });
+  }
+}
 function bindExtras() {
   const sync = () => { readEditor('[data-ex]').forEach((c, i) => Object.assign(A.extras[i], c)); };
+  if ($('#bulkBox')) paintBulk();
+  const selAll = (cls) => { const bs = app.querySelectorAll(cls); const all = Array.from(bs).every(b => b.checked); bs.forEach(b => { b.checked = !all; }); };
+  const allEx = $('#allEx'); if (allEx) allEx.onclick = () => selAll('.sel-ex');
+  const allBq = $('#allBq'); if (allBq) allBq.onclick = () => selAll('.sel-bq');
+  const delSel = (cls, lista, api_, campo, nombre) => {
+    const idx = Array.from(app.querySelectorAll(cls)).filter(b => b.checked).map(b => Number(b.value));
+    if (!idx.length) return toast('Marcá primero los que querés borrar');
+    ask('¿Borrar ' + idx.length + ' ' + nombre + '?', 'Se borran y se guarda al instante. Los turnos ya reservados no se tocan.', 'Sí, borrar ' + idx.length, async () => {
+      if (campo === 'extras') sync(); else readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c));
+      const quedan = A[campo].filter((x, i) => idx.indexOf(i) < 0).map(x => campo === 'bloqueos' ? Object.assign({}, x, { hasta: x.hasta || x.desde }) : x);
+      const r = await api(api_, { [campo]: quedan });
+      if (!r.ok) return toast(r.error);
+      A[campo] = r[campo]; renderAdmin(); location.hash = 'secDias'; toast('Borrados: ' + idx.length);
+    });
+  };
+  const dEx = $('#delSelEx'); if (dEx) dEx.onclick = () => delSel('.sel-ex', A.extras, 'admin_extras', 'extras', 'horarios extra');
+  const dBq = $('#delSelBq'); if (dBq) dBq.onclick = () => delSel('.sel-bq', A.bloqueos, 'admin_bloqueos', 'bloqueos', 'días/horas sacados');
   $('#addEx').onclick = () => { sync(); A.extras.push({ id: '', fecha: '', servicio: 'neuro', desde: '10:00', hasta: '12:00', nota: '' }); renderAdmin(); location.hash = 'secDias'; };
   app.querySelectorAll('[data-del-ex]').forEach(b => b.onclick = () => ask('¿Borrar este día extra?', 'Se borra cuando toques "Guardar días extra". Los turnos ya reservados en ese horario no se tocan.', 'Sí, borrar', () => { sync(); A.extras.splice(Number(b.dataset.delEx), 1); renderAdmin(); location.hash = 'secDias'; }));
   $('#saveEx').onclick = async () => {
@@ -1562,6 +1767,11 @@ const Demo = {
       }
       case 'book': {
         if (this.db.some(b => b.estado === 'activo' && b.inicio === p.start)) return { ok: false, error: 'Ese horario se acaba de ocupar. Elegí otro, por favor.', code: 'TAKEN' };
+        if (p.email && !(p.mailOk && !mailTypoDuro(p.email)) && mailSugerencia(p.email)) return { ok: false, error: 'Revisá tu mail: ¿quisiste decir ' + mailSugerencia(p.email) + '? Si no, no te van a llegar la confirmación ni los recordatorios.' };
+        const t8 = (p.telefono || '').replace(/\D/g, '').slice(-8), nm = s_ => String(s_ || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+        const dup = !p.admin && this.db.filter(b => b.estado === 'activo' && new Date(b.inicio) > new Date() && b.servicio === p.service && nm(b.mascota) === nm(p.mascota) &&
+          ((t8.length === 8 && (b.telefono || '').replace(/\D/g, '').slice(-8) === t8) || (p.email && (b.email || '').toLowerCase() === p.email.toLowerCase())))[0];
+        if (dup) return { ok: false, error: 'Ya tenés un turno para ' + dup.mascota + ' el ' + this.pub(dup).when + '. Si necesitás cambiarlo, tocá "¿Ya tenés turno? Ver, cambiar o cancelar" en la pantalla principal. Si es otra consulta, escribinos por WhatsApp.' };
         const s = new Date(p.start), dur = p.service === 'neuro' ? 40 : (km <= 2 ? 30 : 40);
         const b = { id: 'DEMO-' + (this.db.length + 1), token: 'demo' + Math.random().toString(36).slice(2) + 'xxxxxxxxxxxx', servicio: p.service, estado: 'activo', inicio: s.toISOString(), fin: new Date(s.getTime() + dur * 60000).toISOString(),
           mascota: p.mascota, motivo: p.motivo, nombre: p.nombre, apellido: p.apellido, telefono: p.telefono, whatsapp: '549' + (p.telefono || '').replace(/\D/g, ''), email: p.email,
