@@ -195,12 +195,17 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .cal button.sel{background:var(--brand);border-color:var(--brand);color:#fff}
 .cal.sacar button.sel{background:#b3261e;border-color:#b3261e}
 .cal button.hoy{outline:2px solid var(--brand-2);outline-offset:-3px}
+.bk-dia{border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:10px 12px;margin:0 0 10px;background:#fff}
+.bk-dia.sacar{border-left-color:#b3261e}
+.bk-dia-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bk-dia-h b{font-size:16px}
+.bk-x{border:1px solid var(--line);background:#fff;border-radius:10px;min-width:40px;min-height:36px;font-size:16px;color:var(--bad);cursor:pointer}
 .bk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .bk-chips button{border:0;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:6px 10px;font-weight:700;font-size:14px;cursor:pointer}
 .bk-fr{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:flex-end;margin:6px 0}
 .bk-fr{flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:8px}
 .bk-fr label{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--muted);margin:0;flex:1 1 0;min-width:0}
-.bk-fr input{width:100%;min-width:0;padding-left:8px;padding-right:4px;font-size:17px}
+.bk-fr input{width:100%;min-width:0;padding-left:8px;padding-right:2px;font-size:16px}
 .bk-fr .bk-q{flex:0 0 100%;text-align:right}
 .bk-fr .bk-q button{background:none;border:0;color:var(--bad);font-weight:700;font-size:14px;cursor:pointer;min-height:32px;padding:0 4px}
 .sel-row{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin:0 0 6px;color:var(--muted)}
@@ -1494,8 +1499,13 @@ const ymdLocal = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(
 const DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 function fechaCorta(ymd) { const d = new Date(ymd + 'T12:00:00'); return DIAS_CORTO[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1); }
 function bulkState() {
-  if (!A.bulk) { const h = new Date(); A.bulk = { modo: 'agregar', svc: 'neuro', fechas: [], mes: h.getFullYear() * 12 + h.getMonth(), todoDia: true, franjas: [{ desde: '10:00', hasta: '12:00' }], nota: '' }; }
+  if (!A.bulk) { const h = new Date(); A.bulk = { modo: 'agregar', svc: 'neuro', fechas: [], dias: {}, mes: h.getFullYear() * 12 + h.getMonth(), nota: '', ultimo: null }; }
   return A.bulk;
+}
+/** Horario de un día nuevo: copia el del último día que tocaste (o uno por defecto). */
+function bulkDefault(B) {
+  if (B.ultimo && B.dias[B.ultimo]) return JSON.parse(JSON.stringify(B.dias[B.ultimo]));
+  return B.modo === 'sacar' ? { todo: true, franjas: [{ desde: '15:00', hasta: '17:00' }] } : { todo: false, franjas: [{ desde: '10:00', hasta: '12:00' }] };
 }
 function bulkHtml() {
   const B = bulkState(), sacar = B.modo === 'sacar';
@@ -1505,27 +1515,33 @@ function bulkHtml() {
   let cal = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(d => '<span>' + d + '</span>').join('');
   for (let k = 0; k < (primero.getDay() + 6) % 7; k++) cal += '<span></span>';
   for (let d = 1; d <= dias; d++) {
-    const f = ymdLocal(new Date(y, m, d)), off = f < hoyY || f > maxY;
-    cal += '<button type="button" data-cal="' + f + '" class="' + (B.fechas.indexOf(f) >= 0 ? 'sel ' : '') + (f === hoyY ? 'hoy' : '') + '"' + (off ? ' disabled' : '') + ' aria-pressed="' + (B.fechas.indexOf(f) >= 0) + '">' + d + '</button>';
+    const f = ymdLocal(new Date(y, m, d)), off = f < hoyY || f > maxY, on = B.fechas.indexOf(f) >= 0;
+    cal += '<button type="button" data-cal="' + f + '" class="' + (on ? 'sel ' : '') + (f === hoyY ? 'hoy' : '') + '"' + (off ? ' disabled' : '') + ' aria-pressed="' + on + '">' + d + '</button>';
   }
   const mesTxt = (t => t.charAt(0).toUpperCase() + t.slice(1))(primero.toLocaleDateString('es-AR', { month: 'long' })) + ' ' + y;
-  const fr = B.franjas.map((x, i) => '<div class="bk-fr" data-bkfr="' + i + '"><label>Desde<input class="in" type="time" data-f="desde" value="' + esc(x.desde) + '"></label><label>Hasta<input class="in" type="time" data-f="hasta" value="' + esc(x.hasta) + '"></label>' +
-    (B.franjas.length > 1 ? '<div class="bk-q"><button type="button" data-bkdel="' + i + '">✕ Quitar este horario</button></div>' : '') + '</div>').join('');
   const svcOpts = (sacar ? [['ambos', 'Neurología y Clínica'], ['neuro', 'Solo Neurología'], ['domi', 'Solo Clínica general']] : [['neuro', 'Neurología (CEVET)'], ['domi', 'Clínica general a domicilio']])
     .map(o => '<option value="' + o[0] + '"' + (B.svc === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('');
   const n = B.fechas.length;
+  const cards = B.fechas.map((f, k) => {
+    const D = B.dias[f];
+    const fr = D.franjas.map((x, i) => '<div class="bk-fr" data-bkfr="' + f + '|' + i + '"><label>Desde<input class="in" type="time" data-f="desde" value="' + esc(x.desde) + '"></label><label>Hasta<input class="in" type="time" data-f="hasta" value="' + esc(x.hasta) + '"></label>' +
+      (D.franjas.length > 1 ? '<div class="bk-q"><button type="button" data-bkdel="' + f + '|' + i + '">✕ Quitar este horario</button></div>' : '') + '</div>').join('');
+    return '<div class="bk-dia' + (sacar ? ' sacar' : '') + '" data-bkd="' + f + '">' +
+      '<div class="bk-dia-h"><b>' + labelDate(f) + '</b><button type="button" class="bk-x" data-chip="' + f + '" aria-label="Quitar este día">✕</button></div>' +
+      (sacar ? '<label class="sel-row" style="color:var(--ink);margin:6px 0 0"><input type="checkbox" data-todo="' + f + '" ' + (D.todo ? 'checked' : '') + '> Todo el día</label>' : '') +
+      (!sacar || !D.todo ? fr + '<div><button type="button" class="btn small ghost" style="width:auto;margin-top:6px" data-bkadd="' + f + '">+ Otro horario este día</button></div>' : '') +
+      (n > 1 && k === 0 ? '<div><button type="button" class="btn small secondary" style="width:auto;margin-top:8px" id="bkCopy">Copiar este horario a los otros ' + (n - 1) + ' días</button></div>' : '') +
+      '</div>';
+  }).join('');
   return `<h3 style="font-size:17px;margin:0 0 4px">⚡ Varios días a la vez</h3>
-    <p class="hint" style="margin:0 0 10px">Elegí qué querés hacer, tocá en el calendario todos los días que quieras (salteados o seguidos) y los horarios. Se guarda todo junto.</p>
+    <p class="hint" style="margin:0 0 10px">1) Elegí qué querés hacer. 2) Tocá en el calendario los días (salteados o seguidos). 3) Abajo aparece cada día con su horario: cambialo en el que quieras. 4) Tocá el botón ${sacar ? 'rojo' : 'verde'} del final.</p>
     <div class="bk-modo"><button type="button" data-modo="agregar" class="${!sacar ? 'on' : ''}">➕ Agregar horarios</button><button type="button" data-modo="sacar" class="sacar ${sacar ? 'on' : ''}">➖ Sacar días u horas</button></div>
     <label>Servicio</label><select class="in" id="bkSvc">${svcOpts}</select>
     <label style="margin-top:10px">Días <small>(tocá para marcar o desmarcar)</small></label>
     <div class="cal-h"><button type="button" id="bkPrev" ${B.mes <= mesMin ? 'disabled' : ''} aria-label="Mes anterior">‹</button><b>${esc(mesTxt)}</b><button type="button" id="bkNext" ${B.mes >= mesMax ? 'disabled' : ''} aria-label="Mes siguiente">›</button></div>
     <div class="cal ${sacar ? 'sacar' : ''}">${cal}</div>
-    ${n ? '<div class="bk-chips">' + B.fechas.map(f => '<button type="button" data-chip="' + f + '" title="Quitar">' + fechaCorta(f) + ' ✕</button>').join('') + '</div><div><button type="button" class="btn small ghost" style="width:auto" id="bkClr">Desmarcar todos</button></div>' : '<p class="hint" style="margin:8px 0">Todavía no marcaste días.</p>'}
-    ${sacar ? '<label class="sel-row" style="margin-top:12px;color:var(--ink)"><input type="checkbox" id="bkTodo" ' + (B.todoDia ? 'checked' : '') + '> Todo el día</label>' : ''}
-    ${!sacar || !B.todoDia ? '<label style="margin-top:10px">Horarios ' + (sacar ? 'a sacar' : 'a agregar') + ' <small>(en cada día marcado)</small></label>' + fr +
-      '<div><button type="button" class="btn small ghost" style="width:auto" id="bkAddFr">+ Otra franja</button></div>' +
-      (sacar ? '<p class="hint" style="margin:6px 0 0">Para sacar un solo turno, poné ese horario. Ej.: 11:00 a 11:40.</p>' : '<p class="hint" style="margin:6px 0 0">Turnos de ' + (B.svc === 'neuro' ? '40' : '30') + ' min dentro de cada franja.</p>') : ''}
+    ${n ? '<div style="margin-top:12px">' + cards + '</div><div><button type="button" class="btn small ghost" style="width:auto" id="bkClr">Desmarcar todos los días</button></div>' : '<p class="hint" style="margin:8px 0">Todavía no marcaste días.</p>'}
+    ${n ? (sacar ? '<p class="hint" style="margin:8px 0 0">Para sacar un solo turno, poné ese horario. Ej.: 11:00 a 11:40.</p>' : '<p class="hint" style="margin:8px 0 0">Turnos de ' + (B.svc === 'neuro' ? '40' : '30') + ' min dentro de cada horario.</p>') : ''}
     <label style="margin-top:10px">${sacar ? 'Motivo' : 'Nota'} <small>(interno, opcional)</small></label><input class="in" id="bkNota" maxlength="60" value="${esc(B.nota)}" placeholder="${sacar ? 'Congreso, trámite…' : 'Ej: guardia de domingo'}">
     <button type="button" class="btn ${sacar ? 'danger' : ''}" id="bkGo" style="margin-top:12px" ${n ? '' : 'disabled'}>${n ? (sacar ? 'Sacar' : 'Agregar') + ' en ' + n + ' día' + (n > 1 ? 's' : '') : 'Marcá al menos un día'}</button>`;
 }
@@ -1533,23 +1549,39 @@ function syncBulk() {
   const B = bulkState();
   const sv = $('#bkSvc'); if (sv) B.svc = sv.value;
   const no = $('#bkNota'); if (no) B.nota = no.value.trim();
-  const td = $('#bkTodo'); if (td) B.todoDia = td.checked;
-  app.querySelectorAll('[data-bkfr]').forEach(el => { const i = +el.dataset.bkfr; B.franjas[i] = { desde: el.querySelector('[data-f=desde]').value, hasta: el.querySelector('[data-f=hasta]').value }; });
+  app.querySelectorAll('[data-todo]').forEach(el => { const D = B.dias[el.dataset.todo]; if (D) D.todo = el.checked; });
+  app.querySelectorAll('[data-bkfr]').forEach(el => {
+    const [f, i] = el.dataset.bkfr.split('|'), D = B.dias[f]; if (!D) return;
+    const x = { desde: el.querySelector('[data-f=desde]').value, hasta: el.querySelector('[data-f=hasta]').value };
+    const prev = D.franjas[+i];
+    if (prev && (prev.desde !== x.desde || prev.hasta !== x.hasta)) B.ultimo = f;
+    D.franjas[+i] = x;
+  });
 }
 function paintBulk() {
   const box = $('#bulkBox'); if (!box) return;
   box.innerHTML = bulkHtml();
   const B = bulkState(), re = () => { syncBulk(); paintBulk(); };
-  box.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { syncBulk(); if (B.modo !== b.dataset.modo) B.svc = b.dataset.modo === 'sacar' ? 'ambos' : 'neuro'; B.modo = b.dataset.modo; paintBulk(); });
-  box.querySelectorAll('[data-cal]').forEach(b => b.onclick = () => { syncBulk(); const f = b.dataset.cal, i = B.fechas.indexOf(f); if (i >= 0) B.fechas.splice(i, 1); else B.fechas.push(f); B.fechas.sort(); paintBulk(); });
-  box.querySelectorAll('[data-chip]').forEach(b => b.onclick = () => { syncBulk(); B.fechas = B.fechas.filter(f => f !== b.dataset.chip); paintBulk(); });
-  box.querySelectorAll('[data-bkdel]').forEach(b => b.onclick = () => { syncBulk(); B.franjas.splice(+b.dataset.bkdel, 1); paintBulk(); });
+  box.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => {
+    syncBulk(); if (B.modo === b.dataset.modo) return;
+    B.svc = b.dataset.modo === 'sacar' ? 'ambos' : 'neuro'; B.modo = b.dataset.modo; B.ultimo = null;
+    B.fechas.forEach(f => { B.dias[f] = bulkDefault(B); }); paintBulk();
+  });
+  box.querySelectorAll('[data-cal]').forEach(b => b.onclick = () => {
+    syncBulk(); const f = b.dataset.cal, i = B.fechas.indexOf(f);
+    if (i >= 0) { B.fechas.splice(i, 1); delete B.dias[f]; if (B.ultimo === f) B.ultimo = null; }
+    else { B.dias[f] = bulkDefault(B); B.fechas.push(f); B.fechas.sort(); }
+    paintBulk();
+  });
+  box.querySelectorAll('[data-chip]').forEach(b => b.onclick = () => { syncBulk(); const f = b.dataset.chip; B.fechas = B.fechas.filter(x => x !== f); delete B.dias[f]; if (B.ultimo === f) B.ultimo = null; paintBulk(); });
+  box.querySelectorAll('[data-bkdel]').forEach(b => b.onclick = () => { syncBulk(); const [f, i] = b.dataset.bkdel.split('|'); B.dias[f].franjas.splice(+i, 1); B.ultimo = f; paintBulk(); });
+  box.querySelectorAll('[data-bkadd]').forEach(b => b.onclick = () => { syncBulk(); const D = B.dias[b.dataset.bkadd], u = D.franjas[D.franjas.length - 1]; D.franjas.push({ desde: u && u.hasta ? u.hasta : '15:00', hasta: '' }); B.ultimo = b.dataset.bkadd; paintBulk(); });
+  box.querySelectorAll('[data-todo]').forEach(el => el.onchange = () => { syncBulk(); B.ultimo = el.dataset.todo; paintBulk(); });
   const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
   on('#bkPrev', () => { syncBulk(); B.mes--; paintBulk(); });
   on('#bkNext', () => { syncBulk(); B.mes++; paintBulk(); });
-  on('#bkClr', () => { syncBulk(); B.fechas = []; paintBulk(); });
-  on('#bkAddFr', () => { syncBulk(); const u = B.franjas[B.franjas.length - 1]; B.franjas.push({ desde: u && u.hasta ? u.hasta : '15:00', hasta: '' }); paintBulk(); });
-  const td = $('#bkTodo'); if (td) td.onchange = re;
+  on('#bkClr', () => { syncBulk(); B.fechas = []; B.dias = {}; B.ultimo = null; paintBulk(); });
+  on('#bkCopy', () => { syncBulk(); const src = B.dias[B.fechas[0]]; B.fechas.slice(1).forEach(f => { B.dias[f] = JSON.parse(JSON.stringify(src)); }); B.ultimo = B.fechas[0]; paintBulk(); toast('Horario copiado a todos los días marcados'); });
   const sv = $('#bkSvc'); if (sv) sv.onchange = re;
   on('#bkGo', bulkApply);
 }
@@ -1571,48 +1603,53 @@ async function bulkApply() {
   syncBulk();
   const B = bulkState(), sacar = B.modo === 'sacar', n = B.fechas.length;
   if (!n) return toast('Marcá al menos un día');
-  const franjas = (sacar && B.todoDia) ? [] : B.franjas;
-  if (!(sacar && B.todoDia)) {
-    if (!franjas.length) return toast('Agregá al menos un horario');
-    const dur = B.svc === 'neuro' ? 40 : 30;
-    for (const x of franjas) {
-      if (!/^\d\d:\d\d$/.test(x.desde || '') || !/^\d\d:\d\d$/.test(x.hasta || '')) return toast('Completá desde y hasta en cada horario');
-      if (x.desde >= x.hasta) return toast('El horario ' + x.desde + '–' + x.hasta + ' está al revés');
-      if (!sacar && hmToM(x.hasta) - hmToM(x.desde) < dur) return toast('En ' + x.desde + '–' + x.hasta + ' no entra ni un turno (' + dur + ' min)');
+  const dur = B.svc === 'neuro' ? 40 : 30;
+  for (const f of B.fechas) {
+    const D = B.dias[f], dia = fechaCorta(f);
+    if (sacar && D.todo) continue;
+    if (!D.franjas.length) return toast(dia + ': agregá al menos un horario');
+    for (const x of D.franjas) {
+      if (!/^\d\d:\d\d$/.test(x.desde || '') || !/^\d\d:\d\d$/.test(x.hasta || '')) return toast(dia + ': completá desde y hasta en cada horario');
+      if (x.desde >= x.hasta) return toast(dia + ': el horario ' + x.desde + '–' + x.hasta + ' está al revés');
+      if (!sacar && hmToM(x.hasta) - hmToM(x.desde) < dur) return toast(dia + ': en ' + x.desde + '–' + x.hasta + ' no entra ni un turno (' + dur + ' min)');
     }
-    const ord = franjas.slice().sort((a, b) => a.desde < b.desde ? -1 : 1);
-    for (let i = 1; i < ord.length; i++) if (ord[i].desde < ord[i - 1].hasta) return toast('Los horarios ' + ord[i - 1].desde + '–' + ord[i - 1].hasta + ' y ' + ord[i].desde + '–' + ord[i].hasta + ' se pisan');
+    const ord = D.franjas.slice().sort((a, b) => a.desde < b.desde ? -1 : 1);
+    for (let i = 1; i < ord.length; i++) if (ord[i].desde < ord[i - 1].hasta) return toast(dia + ': los horarios ' + ord[i - 1].desde + '–' + ord[i - 1].hasta + ' y ' + ord[i].desde + '–' + ord[i].hasta + ' se pisan');
   }
-  const lista = B.fechas.map(fechaCorta).join(', ');
-  const hTxt = (sacar && B.todoDia) ? 'todo el día' : franjas.map(x => x.desde + '–' + x.hasta).join(' y ');
+  const det = B.fechas.map(f => { const D = B.dias[f]; return fechaCorta(f) + ': ' + ((sacar && D.todo) ? 'todo el día' : D.franjas.map(x => x.desde + '–' + x.hasta).join(' y ')); }).join(' · ');
   const svcTxt = { ambos: 'Neurología y Clínica', neuro: 'Neurología', domi: 'Clínica general' }[B.svc];
   if (!sacar) {
     readEditor('[data-ex]').forEach((c, i) => Object.assign(A.extras[i], c));
     const nuevos = [];
-    B.fechas.forEach(f => franjas.forEach(x => nuevos.push({ id: '', fecha: f, servicio: B.svc, desde: x.desde, hasta: x.hasta, nota: B.nota })));
+    B.fechas.forEach(f => B.dias[f].franjas.forEach(x => nuevos.push({ id: '', fecha: f, servicio: B.svc, desde: x.desde, hasta: x.hasta, nota: B.nota })));
     const todo = A.extras.concat(nuevos);
     if (JSON.stringify(todo).length + 25 * todo.length > 8400) return toast('Son demasiados horarios extra juntos. Borrá algunos viejos o cargalos en dos veces.');
-    ask('¿Agregar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', lista + ' · de ' + hTxt + '. Se suman a tu horario de siempre.', 'Sí, agregar', async () => {
+    ask('¿Agregar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', det + '. Se suman a tu horario de siempre.', 'Sí, agregar', async () => {
       const r = await api('admin_extras', { extras: todo });
       if (!r.ok) return toast(r.error);
       A.extras = r.extras; A.bulk = null; renderAdmin(); location.hash = 'secDias'; toast('Listo: horarios agregados en ' + n + ' día' + (n > 1 ? 's' : ''));
     });
   } else {
     readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c));
-    // días seguidos con los mismos horarios se guardan como un solo rango (ocupa menos lugar)
-    const tramos = []; let ini = null, prev = null;
-    B.fechas.forEach(f => {
-      if (prev && ymdLocal(new Date(new Date(prev + 'T12:00:00').getTime() + 864e5)) === f) prev = f;
-      else { if (ini) tramos.push([ini, prev]); ini = f; prev = f; }
-    });
-    if (ini) tramos.push([ini, prev]);
     const nuevos = [];
-    tramos.forEach(t => (franjas.length ? franjas : [{ desde: '', hasta: '' }]).forEach(x => nuevos.push({ id: '', desde: t[0], hasta: t[1], servicio: B.svc, horaDesde: x.desde, horaHasta: x.hasta, motivo: B.nota })));
+    // días completos seguidos se guardan como un solo rango (ocupa menos lugar)
+    let ini = null, prev = null;
+    const cierra = () => { if (ini) nuevos.push({ id: '', desde: ini, hasta: prev, servicio: B.svc, horaDesde: '', horaHasta: '', motivo: B.nota }); ini = prev = null; };
+    B.fechas.forEach(f => {
+      const D = B.dias[f];
+      if (D.todo) {
+        if (prev && ymdLocal(new Date(new Date(prev + 'T12:00:00').getTime() + 864e5)) === f) prev = f; else { cierra(); ini = prev = f; }
+      } else {
+        cierra();
+        D.franjas.forEach(x => nuevos.push({ id: '', desde: f, hasta: f, servicio: B.svc, horaDesde: x.desde, horaHasta: x.hasta, motivo: B.nota }));
+      }
+    });
+    cierra();
     const todo = A.bloqueos.map(x => Object.assign({}, x, { hasta: x.hasta || x.desde })).concat(nuevos);
     if (JSON.stringify(todo).length + 25 * todo.length > 8400) return toast('Son demasiados bloqueos juntos. Borrá algunos viejos o cargalos en dos veces.');
     const enRango = r => nuevos.some(x => r.ymd >= x.desde && r.ymd <= x.hasta && (x.servicio === 'ambos' || x.servicio === r.servicio) && (!x.horaDesde || (r.hm < x.horaHasta && r.hmEnd > x.horaDesde)));
     const res = A.rows.filter(r => r.estado === 'activo' && enRango(r)).length;
-    ask('¿Sacar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', lista + ' · ' + hTxt + '.' + (res ? ' Ojo: hay ' + res + ' turno(s) reservado(s) ahí; no se cancelan solos, cancelalos arriba si hace falta.' : ''), 'Sí, sacar', async () => {
+    ask('¿Sacar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', det + '.' + (res ? ' Ojo: hay ' + res + ' turno(s) reservado(s) ahí; no se cancelan solos, cancelalos arriba si hace falta.' : ''), 'Sí, sacar', async () => {
       const r = await api('admin_bloqueos', { bloqueos: todo });
       if (!r.ok) return toast(r.error);
       A.bloqueos = r.bloqueos; A.bulk = null; renderAdmin(); location.hash = 'secDias'; toast('Listo: sacado en ' + n + ' día' + (n > 1 ? 's' : ''));
