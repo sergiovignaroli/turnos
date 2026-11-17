@@ -1540,7 +1540,7 @@ function paintBulk() {
   const box = $('#bulkBox'); if (!box) return;
   box.innerHTML = bulkHtml();
   const B = bulkState(), re = () => { syncBulk(); paintBulk(); };
-  box.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { syncBulk(); B.modo = b.dataset.modo; if (B.modo === 'agregar' && B.svc === 'ambos') B.svc = 'neuro'; paintBulk(); });
+  box.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { syncBulk(); if (B.modo !== b.dataset.modo) B.svc = b.dataset.modo === 'sacar' ? 'ambos' : 'neuro'; B.modo = b.dataset.modo; paintBulk(); });
   box.querySelectorAll('[data-cal]').forEach(b => b.onclick = () => { syncBulk(); const f = b.dataset.cal, i = B.fechas.indexOf(f); if (i >= 0) B.fechas.splice(i, 1); else B.fechas.push(f); B.fechas.sort(); paintBulk(); });
   box.querySelectorAll('[data-chip]').forEach(b => b.onclick = () => { syncBulk(); B.fechas = B.fechas.filter(f => f !== b.dataset.chip); paintBulk(); });
   box.querySelectorAll('[data-bkdel]').forEach(b => b.onclick = () => { syncBulk(); B.franjas.splice(+b.dataset.bkdel, 1); paintBulk(); });
@@ -1552,6 +1552,20 @@ function paintBulk() {
   const td = $('#bkTodo'); if (td) td.onchange = re;
   const sv = $('#bkSvc'); if (sv) sv.onchange = re;
   on('#bkGo', bulkApply);
+}
+/** Si hay días marcados en "Varios días a la vez" sin aplicar, los aplica (con su confirmación) en vez de perderlos. */
+function bulkPendiente(modo) {
+  if (!$('#bulkBox')) return false;
+  syncBulk();
+  const B = A.bulk;
+  if (!B || !B.fechas.length) return false;
+  if (B.modo !== modo) {
+    toast('Tenés ' + B.fechas.length + ' día(s) marcados arriba en "Varios días a la vez" para ' + (B.modo === 'sacar' ? 'sacar' : 'agregar') + '. Tocá el botón "' + (B.modo === 'sacar' ? 'Sacar' : 'Agregar') + ' en ' + B.fechas.length + ' día(s)" de ese recuadro.');
+    $('#bulkBox').scrollIntoView({ block: 'start', behavior: 'smooth' });
+    return true;
+  }
+  bulkApply();
+  return true;
 }
 async function bulkApply() {
   syncBulk();
@@ -1627,6 +1641,7 @@ function bindExtras() {
   $('#addEx').onclick = () => { sync(); A.extras.push({ id: '', fecha: '', servicio: 'neuro', desde: '10:00', hasta: '12:00', nota: '' }); renderAdmin(); location.hash = 'secDias'; };
   app.querySelectorAll('[data-del-ex]').forEach(b => b.onclick = () => ask('¿Borrar este día extra?', 'Se borra cuando toques "Guardar días extra". Los turnos ya reservados en ese horario no se tocan.', 'Sí, borrar', () => { sync(); A.extras.splice(Number(b.dataset.delEx), 1); renderAdmin(); location.hash = 'secDias'; }));
   $('#saveEx').onclick = async () => {
+    if (bulkPendiente('agregar')) return;
     sync();
     const r = await api('admin_extras', { extras: A.extras });
     if (!r.ok) return toast(r.error);
@@ -1638,6 +1653,7 @@ function bindExtras() {
     addBq.onclick = () => { syncBq(); A.bloqueos.push({ id: '', desde: '', hasta: '', servicio: 'ambos', horaDesde: '', horaHasta: '', motivo: '' }); renderAdmin(); location.hash = 'secDias'; };
     app.querySelectorAll('[data-del-bq]').forEach(b => b.onclick = () => ask('¿Borrar este bloqueo?', 'Ese día u horario vuelve a ofrecerse cuando toques "Guardar días/horas sacados".', 'Sí, borrar', () => { syncBq(); A.bloqueos.splice(Number(b.dataset.delBq), 1); renderAdmin(); location.hash = 'secDias'; }));
     $('#saveBq').onclick = async () => {
+      if (bulkPendiente('sacar')) return;
       syncBq();
       const bq = A.bloqueos.map(x => Object.assign({}, x, { hasta: x.hasta || x.desde }));
       const enRango = r => bq.some(x => r.ymd >= x.desde && r.ymd <= x.hasta && (x.servicio === 'ambos' || x.servicio === r.servicio) &&
