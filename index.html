@@ -200,6 +200,9 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .ls-row label{display:flex;align-items:center;gap:10px;flex:1;margin:0;font-weight:400;font-size:15px;color:var(--ink);cursor:pointer;min-width:0}
 .ls-row input{width:22px;height:22px;flex:0 0 22px}
 .ls-row span{min-width:0;overflow-wrap:anywhere}
+.ls-st{display:block;margin-top:2px}
+.ls-st small{display:block;font-size:13px;line-height:1.35}
+.ok-t{color:#1b7a3d}.warn-t{color:#9a5b00}
 .bk-dia{border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:10px 12px;margin:0 0 10px;background:#fff}
 .bk-dia.sacar{border-left-color:#b3261e}
 .bk-dia-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -1368,7 +1371,7 @@ function adminExtrasHtml() {
   if (A.horDisp) {
     const svcN = { ambos: 'Neurología y Clínica', neuro: 'Neurología', domi: 'Clínica general' };
     const fila = (cls, i, txt) => '<div class="ls-row"><label><input type="checkbox" class="' + cls + '" value="' + i + '"><span>' + txt + '</span></label><button type="button" class="bk-x" data-del1="' + cls + '|' + i + '" aria-label="Borrar">✕</button></div>';
-    const ex = A.extras.map((x, i) => fila('sel-ex', i, '<b>' + esc(labelDate(x.fecha)) + '</b> · ' + esc(x.desde) + '–' + esc(x.hasta) + ' · ' + svcN[x.servicio] + (x.nota ? ' · <i>' + esc(x.nota) + '</i>' : ''))).join('');
+    const ex = A.extras.map((x, i) => fila('sel-ex', i, '<b>' + esc(labelDate(x.fecha)) + '</b> · ' + esc(x.desde) + '–' + esc(x.hasta) + ' · ' + svcN[x.servicio] + (x.nota ? ' · <i>' + esc(x.nota) + '</i>' : '') + '<span class="ls-st" data-exst="' + i + '">' + extraEstado(x) + '</span>')).join('');
     const bq = (A.bloqueos || []).map((x, i) => fila('sel-bq', i, '<b>' + esc(x.hasta && x.hasta !== x.desde ? 'Del ' + labelDate(x.desde) + ' al ' + labelDate(x.hasta) : labelDate(x.desde)) + '</b> · ' +
       (x.horaDesde ? esc(x.horaDesde) + '–' + esc(x.horaHasta) : 'todo el día') + ' · ' + svcN[x.servicio] + (x.motivo ? ' · <i>' + esc(x.motivo) + '</i>' : ''))).join('');
     const botones = (n, all, del) => n > 1 ? '<div class="row" style="margin-top:6px"><button class="btn small ghost" type="button" id="' + all + '">Seleccionar todos</button><button class="btn small danger" type="button" id="' + del + '">Borrar seleccionados</button></div>' : '';
@@ -1505,6 +1508,33 @@ function bulkState() {
   if (!A.bulk) { const h = new Date(); A.bulk = { modo: 'agregar', svc: 'neuro', fechas: [], dias: {}, mes: h.getFullYear() * 12 + h.getMonth(), nota: '', ultimo: null }; }
   return A.bulk;
 }
+/* ---- ¿Los tutores ven los horarios extra? Se consulta la misma agenda que ven ellos (en vivo, con Google Calendar). ---- */
+function extraGrilla(x) { const dur = x.servicio === 'neuro' ? 40 : 30, out = []; for (let m = hmToM(x.desde); m + dur <= hmToM(x.hasta); m += dur) out.push(mToHm(m)); return out; }
+function extraEstado(x) {
+  const c = A.exChk && A.exChk.res;
+  if (!c) return '<small class="hint">Revisando si los tutores lo ven…</small>';
+  const cs = c[x.servicio] || {};
+  if (cs._ult && x.fecha > cs._ult) return '<small class="hint">Se va a mostrar a los tutores cuando entre en las próximas 3 semanas de agenda.</small>';
+  const ofer = cs[x.fecha] || [], g = extraGrilla(x), si = g.filter(h => ofer.indexOf(h) >= 0), no = g.filter(h => ofer.indexOf(h) < 0);
+  let h = '';
+  if (si.length) h += '<small class="ok-t">✔ Los tutores ven: ' + si.join(', ') + '</small>';
+  if (no.length) h += '<small class="warn-t">⚠ No se ofrece ' + no.join(', ') + ': ese horario se cruza con algo de tu Google Calendar' + (x.servicio === 'neuro' ? ' o con los 15 min de viaje desde un domicilio' : ' o con los 15 min de viaje a CEVET') + ', o ya está reservado.</small>';
+  return h;
+}
+async function chequearExtras(forzar) {
+  if (!A.extras.length) return;
+  const key = JSON.stringify(A.extras);
+  if (!forzar && A.exChk && A.exChk.key === key && Date.now() - A.exChk.t < 60000) return;
+  const res = {};
+  for (const svc of [...new Set(A.extras.map(x => x.servicio))]) {
+    const r = await api('slots', svc === 'domi' ? { service: 'domi', address: 'Montevideo 2600, Rosario' } : { service: 'neuro' });
+    if (!r || !r.ok) return;
+    res[svc] = {}; (r.days || []).forEach(d => { res[svc][d.date] = d.slots.map(z => z.hm); });
+    const ds = (r.days || []).map(d => d.date).sort(); res[svc]._ult = ds[ds.length - 1] || '';
+  }
+  A.exChk = { key: key, res: res, t: Date.now() };
+  A.extras.forEach((x, i) => { const el = app.querySelector('[data-exst="' + i + '"]'); if (el) el.innerHTML = extraEstado(x); });
+}
 /** Horario de un día nuevo: copia el del último día que tocaste (o uno por defecto). */
 function bulkDefault(B) {
   if (B.ultimo && B.dias[B.ultimo]) return JSON.parse(JSON.stringify(B.dias[B.ultimo]));
@@ -1616,7 +1646,7 @@ async function bulkApply() {
     ask('¿Agregar ' + svcTxt + ' en ' + n + ' día' + (n > 1 ? 's' : '') + '?', det + '. Se suman a tu horario de siempre.', 'Sí, agregar', async () => {
       const r = await api('admin_extras', { extras: todo });
       if (!r.ok) return toast(r.error);
-      A.extras = r.extras; A.bulk = null; renderAdmin(); location.hash = 'secDias'; toast('Listo: horarios agregados en ' + n + ' día' + (n > 1 ? 's' : ''));
+      A.extras = r.extras; A.bulk = null; A.exChk = null; renderAdmin(); location.hash = 'secDias'; toast('Listo: horarios agregados en ' + n + ' día' + (n > 1 ? 's' : '') + '. Abajo ves qué turnos ven los tutores.');
     });
   } else {
     readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c));
@@ -1648,6 +1678,7 @@ async function bulkApply() {
 function bindExtras() {
   if ($('#bulkBox')) {
     paintBulk();
+    chequearExtras();
     const selAll = cls => { const bs = app.querySelectorAll('.' + cls); const all = Array.from(bs).every(b => b.checked); bs.forEach(b => { b.checked = !all; }); };
     const borrar = (cls, idx) => {
       const campo = cls === 'sel-ex' ? 'extras' : 'bloqueos', api_ = cls === 'sel-ex' ? 'admin_extras' : 'admin_bloqueos';
