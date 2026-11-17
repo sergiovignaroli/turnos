@@ -195,6 +195,11 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .cal button.sel{background:var(--brand);border-color:var(--brand);color:#fff}
 .cal.sacar button.sel{background:#b3261e;border-color:#b3261e}
 .cal button.hoy{outline:2px solid var(--brand-2);outline-offset:-3px}
+.ls-tit{font-size:15px;margin:8px 0 6px;color:var(--ink)}
+.ls-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:6px 8px 6px 10px;margin:0 0 6px;background:#fff}
+.ls-row label{display:flex;align-items:center;gap:10px;flex:1;margin:0;font-weight:400;font-size:15px;color:var(--ink);cursor:pointer;min-width:0}
+.ls-row input{width:22px;height:22px;flex:0 0 22px}
+.ls-row span{min-width:0;overflow-wrap:anywhere}
 .bk-dia{border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:12px;padding:10px 12px;margin:0 0 10px;background:#fff}
 .bk-dia.sacar{border-left-color:#b3261e}
 .bk-dia-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -1360,9 +1365,26 @@ function bindAusencias() {
 
 /* ==================== DÍAS: AGREGAR / SACAR (panel) ==================== */
 function adminExtrasHtml() {
+  if (A.horDisp) {
+    const svcN = { ambos: 'Neurología y Clínica', neuro: 'Neurología', domi: 'Clínica general' };
+    const fila = (cls, i, txt) => '<div class="ls-row"><label><input type="checkbox" class="' + cls + '" value="' + i + '"><span>' + txt + '</span></label><button type="button" class="bk-x" data-del1="' + cls + '|' + i + '" aria-label="Borrar">✕</button></div>';
+    const ex = A.extras.map((x, i) => fila('sel-ex', i, '<b>' + esc(labelDate(x.fecha)) + '</b> · ' + esc(x.desde) + '–' + esc(x.hasta) + ' · ' + svcN[x.servicio] + (x.nota ? ' · <i>' + esc(x.nota) + '</i>' : ''))).join('');
+    const bq = (A.bloqueos || []).map((x, i) => fila('sel-bq', i, '<b>' + esc(x.hasta && x.hasta !== x.desde ? 'Del ' + labelDate(x.desde) + ' al ' + labelDate(x.hasta) : labelDate(x.desde)) + '</b> · ' +
+      (x.horaDesde ? esc(x.horaDesde) + '–' + esc(x.horaHasta) : 'todo el día') + ' · ' + svcN[x.servicio] + (x.motivo ? ' · <i>' + esc(x.motivo) + '</i>' : ''))).join('');
+    const botones = (n, all, del) => n > 1 ? '<div class="row" style="margin-top:6px"><button class="btn small ghost" type="button" id="' + all + '">Seleccionar todos</button><button class="btn small danger" type="button" id="' + del + '">Borrar seleccionados</button></div>' : '';
+    return `<div class="adm-sec card" id="secDias"><h2 style="font-size:19px">Cambios en fechas puntuales</h2>
+      <p class="hint" style="margin:0 0 6px">Para cambiar <b>solo algunas fechas</b>. Para cambiar tu horario de siempre, usá "Horario de trabajo semanal".</p>
+      <div class="bk" id="bulkBox"></div>
+      <h3 style="font-size:17px;margin:4px 0 4px">Lo que ya tenés cargado</h3>
+      <p class="hint" style="margin:0 0 8px">Para cambiar algo: borralo con ✕ y cargalo de nuevo arriba. Los que ya pasaron se borran solos. Los turnos ya reservados nunca se tocan.</p>
+      <h4 class="ls-tit">➕ Horarios extra (${A.extras.length})</h4>
+      ${ex || '<p class="hint" style="margin:0 0 10px">Ninguno.</p>'}${botones(A.extras.length, 'allEx', 'delSelEx')}
+      <h4 class="ls-tit" style="margin-top:14px">➖ Días u horas sacados (${(A.bloqueos || []).length})</h4>
+      ${bq || '<p class="hint" style="margin:0 0 10px">Ninguno.</p>'}${botones((A.bloqueos || []).length, 'allBq', 'delSelBq')}
+    </div>`;
+  }
   const hoy = new Date(); const tY = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
   const items = A.extras.map((x, i) => `<div class="ed" data-ex="${i}">
-    <label class="sel-row"><input type="checkbox" class="sel-ex" value="${i}"> Seleccionar</label>
     <div class="grid">
       <div><label>Fecha</label><input type="date" data-k="fecha" min="${tY}" value="${esc(x.fecha)}"></div>
       <div><label>Servicio</label><select data-k="servicio"><option value="neuro" ${x.servicio === 'neuro' ? 'selected' : ''}>Neurología (CEVET)</option><option value="domi" ${x.servicio === 'domi' ? 'selected' : ''}>Clínica a domicilio</option></select></div>
@@ -1372,24 +1394,7 @@ function adminExtrasHtml() {
     <label>Nota <small>(interna, opcional)</small></label><input data-k="nota" maxlength="80" value="${esc(x.nota)}">
     <div class="row" style="margin-top:10px"><button class="btn small danger" type="button" data-del-ex="${i}">Borrar</button></div>
   </div>`).join('');
-  const bitems = (A.bloqueos || []).map((x, i) => `<div class="ed" data-bq="${i}">
-    <label class="sel-row"><input type="checkbox" class="sel-bq" value="${i}"> Seleccionar</label>
-    <div class="grid">
-      <div><label>Desde (fecha)</label><input type="date" data-k="desde" min="${tY}" value="${esc(x.desde)}"></div>
-      <div><label>Hasta (fecha) <small>(un día: igual)</small></label><input type="date" data-k="hasta" min="${tY}" value="${esc(x.hasta)}"></div>
-      <div><label>Hora desde <small>(vacío = todo el día)</small></label><input type="time" data-k="horaDesde" value="${esc(x.horaDesde)}"></div>
-      <div><label>Hora hasta</label><input type="time" data-k="horaHasta" value="${esc(x.horaHasta)}"></div>
-      <div><label>Servicio</label><select data-k="servicio">${[['ambos', 'Neurología y Clínica'], ['neuro', 'Solo Neurología'], ['domi', 'Solo Clínica general']].map(o => '<option value="' + o[0] + '" ' + (x.servicio === o[0] ? 'selected' : '') + '>' + o[1] + '</option>').join('')}</select></div>
-      <div><label>Motivo <small>(interno)</small></label><input data-k="motivo" maxlength="60" value="${esc(x.motivo)}" placeholder="Trámite, congreso…"></div>
-    </div>
-    <div class="row" style="margin-top:10px"><button class="btn small danger" type="button" data-del-bq="${i}">Borrar (vuelve a abrirse)</button></div>
-  </div>`).join('');
-  const sacar = A.horDisp ? `
-    <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días u horas</h3>
-    <p class="hint" style="margin:0 0 10px">Para no trabajar un día, unas horas o varios días seguidos (por ejemplo, el martes 18 de 9 a 12, o del 20 al 24 completo). Dejá las horas vacías para sacar el día entero. Los turnos ya reservados <b>no</b> se cancelan solos: cancelalos arriba si hace falta.</p>
-    ${bitems || '<p class="hint">No hay días ni horas sacados.</p>'}
-    ${(A.bloqueos || []).length > 1 ? '<div class="row"><button class="btn small ghost" type="button" id="allBq">Seleccionar todos</button><button class="btn small danger" type="button" id="delSelBq">Borrar seleccionados</button></div>' : ''}
-    <div class="row"><button class="btn small secondary" type="button" id="addBq">+ Sacar un día u horario</button><button class="btn small" type="button" id="saveBq">Guardar días/horas sacados</button></div>` : `
+  const sacar = `
     <h3 style="font-size:17px;margin:20px 0 6px">➖ Sacar días (cerrar)</h3>
     <div class="note warn">Para poder sacar también <b>horas</b> sueltas, actualizá el servidor (Code.gs) a la última versión.</div>
     <div class="ed"><div class="grid">
@@ -1400,11 +1405,9 @@ function adminExtrasHtml() {
     <div class="row" style="margin-top:10px"><button class="btn small" type="button" id="cerrBtn">Cerrar esos días</button></div></div>`;
   return `<div class="adm-sec card" id="secDias"><h2 style="font-size:19px">Cambios en fechas puntuales</h2>
     <p class="hint" style="margin:0 0 6px">Para cambiar <b>solo una fecha o una semana</b>. Para cambiar tu horario de siempre, usá "Horario de trabajo semanal".</p>
-    ${A.horDisp ? '<div class="bk" id="bulkBox"></div>' : ''}
     <h3 style="font-size:17px;margin:6px 0">➕ Agregar días u horarios extra</h3>
     <p class="hint" style="margin:0 0 10px">Para abrir turnos fuera de tu horario habitual (un domingo, un feriado, una tarde extra). Se suman a los horarios de siempre, aunque ese día esté cerrado. Los turnos que ya tengas en Google Calendar se respetan.</p>
     ${items || '<p class="hint">No hay días extra cargados.</p>'}
-    ${A.extras.length > 1 ? '<div class="row"><button class="btn small ghost" type="button" id="allEx">Seleccionar todos</button><button class="btn small danger" type="button" id="delSelEx">Borrar seleccionados</button></div>' : ''}
     <div class="row"><button class="btn small secondary" type="button" id="addEx">+ Agregar día extra</button><button class="btn small" type="button" id="saveEx">Guardar días extra</button></div>
     ${sacar}
   </div>`;
@@ -1585,20 +1588,6 @@ function paintBulk() {
   const sv = $('#bkSvc'); if (sv) sv.onchange = re;
   on('#bkGo', bulkApply);
 }
-/** Si hay días marcados en "Varios días a la vez" sin aplicar, los aplica (con su confirmación) en vez de perderlos. */
-function bulkPendiente(modo) {
-  if (!$('#bulkBox')) return false;
-  syncBulk();
-  const B = A.bulk;
-  if (!B || !B.fechas.length) return false;
-  if (B.modo !== modo) {
-    toast('Tenés ' + B.fechas.length + ' día(s) marcados arriba en "Varios días a la vez" para ' + (B.modo === 'sacar' ? 'sacar' : 'agregar') + '. Tocá el botón "' + (B.modo === 'sacar' ? 'Sacar' : 'Agregar') + ' en ' + B.fechas.length + ' día(s)" de ese recuadro.');
-    $('#bulkBox').scrollIntoView({ block: 'start', behavior: 'smooth' });
-    return true;
-  }
-  bulkApply();
-  return true;
-}
 async function bulkApply() {
   syncBulk();
   const B = bulkState(), sacar = B.modo === 'sacar', n = B.fechas.length;
@@ -1657,54 +1646,38 @@ async function bulkApply() {
   }
 }
 function bindExtras() {
+  if ($('#bulkBox')) {
+    paintBulk();
+    const selAll = cls => { const bs = app.querySelectorAll('.' + cls); const all = Array.from(bs).every(b => b.checked); bs.forEach(b => { b.checked = !all; }); };
+    const borrar = (cls, idx) => {
+      const campo = cls === 'sel-ex' ? 'extras' : 'bloqueos', api_ = cls === 'sel-ex' ? 'admin_extras' : 'admin_bloqueos';
+      if (!idx.length) return toast('Marcá primero los que querés borrar');
+      const nombre = cls === 'sel-ex' ? (idx.length > 1 ? 'horarios extra' : 'horario extra') : (idx.length > 1 ? 'días/horas sacados' : 'día/hora sacado');
+      const txt = cls === 'sel-ex' ? 'Esos horarios dejan de ofrecerse. Los turnos ya reservados no se tocan.' : 'Esos días u horas vuelven a ofrecerse a los tutores.';
+      ask('¿Borrar ' + idx.length + ' ' + nombre + '?', txt, 'Sí, borrar', async () => {
+        const quedan = A[campo].filter((x, i) => idx.indexOf(i) < 0).map(x => campo === 'bloqueos' ? Object.assign({}, x, { hasta: x.hasta || x.desde }) : x);
+        const r = await api(api_, { [campo]: quedan });
+        if (!r.ok) return toast(r.error);
+        A[campo] = r[campo]; renderAdmin(); location.hash = 'secDias'; toast(idx.length > 1 ? 'Borrados: ' + idx.length : 'Borrado');
+      });
+    };
+    const marcados = cls => Array.from(app.querySelectorAll('.' + cls)).filter(b => b.checked).map(b => Number(b.value));
+    const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+    on('#allEx', () => selAll('sel-ex')); on('#allBq', () => selAll('sel-bq'));
+    on('#delSelEx', () => borrar('sel-ex', marcados('sel-ex'))); on('#delSelBq', () => borrar('sel-bq', marcados('sel-bq')));
+    app.querySelectorAll('[data-del1]').forEach(b => b.onclick = () => { const [cls, i] = b.dataset.del1.split('|'); borrar(cls, [Number(i)]); });
+    return;
+  }
+  // ---- servidor viejo (sin horario editable): formulario clásico ----
   const sync = () => { readEditor('[data-ex]').forEach((c, i) => Object.assign(A.extras[i], c)); };
-  if ($('#bulkBox')) paintBulk();
-  const selAll = (cls) => { const bs = app.querySelectorAll(cls); const all = Array.from(bs).every(b => b.checked); bs.forEach(b => { b.checked = !all; }); };
-  const allEx = $('#allEx'); if (allEx) allEx.onclick = () => selAll('.sel-ex');
-  const allBq = $('#allBq'); if (allBq) allBq.onclick = () => selAll('.sel-bq');
-  const delSel = (cls, lista, api_, campo, nombre) => {
-    const idx = Array.from(app.querySelectorAll(cls)).filter(b => b.checked).map(b => Number(b.value));
-    if (!idx.length) return toast('Marcá primero los que querés borrar');
-    ask('¿Borrar ' + idx.length + ' ' + nombre + '?', 'Se borran y se guarda al instante. Los turnos ya reservados no se tocan.', 'Sí, borrar ' + idx.length, async () => {
-      if (campo === 'extras') sync(); else readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c));
-      const quedan = A[campo].filter((x, i) => idx.indexOf(i) < 0).map(x => campo === 'bloqueos' ? Object.assign({}, x, { hasta: x.hasta || x.desde }) : x);
-      const r = await api(api_, { [campo]: quedan });
-      if (!r.ok) return toast(r.error);
-      A[campo] = r[campo]; renderAdmin(); location.hash = 'secDias'; toast('Borrados: ' + idx.length);
-    });
-  };
-  const dEx = $('#delSelEx'); if (dEx) dEx.onclick = () => delSel('.sel-ex', A.extras, 'admin_extras', 'extras', 'horarios extra');
-  const dBq = $('#delSelBq'); if (dBq) dBq.onclick = () => delSel('.sel-bq', A.bloqueos, 'admin_bloqueos', 'bloqueos', 'días/horas sacados');
   $('#addEx').onclick = () => { sync(); A.extras.push({ id: '', fecha: '', servicio: 'neuro', desde: '10:00', hasta: '12:00', nota: '' }); renderAdmin(); location.hash = 'secDias'; };
   app.querySelectorAll('[data-del-ex]').forEach(b => b.onclick = () => ask('¿Borrar este día extra?', 'Se borra cuando toques "Guardar días extra". Los turnos ya reservados en ese horario no se tocan.', 'Sí, borrar', () => { sync(); A.extras.splice(Number(b.dataset.delEx), 1); renderAdmin(); location.hash = 'secDias'; }));
   $('#saveEx').onclick = async () => {
-    if (bulkPendiente('agregar')) return;
     sync();
     const r = await api('admin_extras', { extras: A.extras });
     if (!r.ok) return toast(r.error);
     A.extras = r.extras; renderAdmin(); location.hash = 'secDias'; toast('Días extra guardados');
   };
-  const syncBq = () => { readEditor('[data-bq]').forEach((c, i) => Object.assign(A.bloqueos[i], c)); };
-  const addBq = $('#addBq');
-  if (addBq) {
-    addBq.onclick = () => { syncBq(); A.bloqueos.push({ id: '', desde: '', hasta: '', servicio: 'ambos', horaDesde: '', horaHasta: '', motivo: '' }); renderAdmin(); location.hash = 'secDias'; };
-    app.querySelectorAll('[data-del-bq]').forEach(b => b.onclick = () => ask('¿Borrar este bloqueo?', 'Ese día u horario vuelve a ofrecerse cuando toques "Guardar días/horas sacados".', 'Sí, borrar', () => { syncBq(); A.bloqueos.splice(Number(b.dataset.delBq), 1); renderAdmin(); location.hash = 'secDias'; }));
-    $('#saveBq').onclick = async () => {
-      if (bulkPendiente('sacar')) return;
-      syncBq();
-      const bq = A.bloqueos.map(x => Object.assign({}, x, { hasta: x.hasta || x.desde }));
-      const enRango = r => bq.some(x => r.ymd >= x.desde && r.ymd <= x.hasta && (x.servicio === 'ambos' || x.servicio === r.servicio) &&
-        (!x.horaDesde || (r.hm < x.horaHasta && r.hmEnd > x.horaDesde)));
-      const reservados = A.rows.filter(r => r.estado === 'activo' && enRango(r)).length;
-      const guardar = async () => {
-        const r = await api('admin_bloqueos', { bloqueos: bq });
-        if (!r.ok) return toast(r.error);
-        A.bloqueos = r.bloqueos; renderAdmin(); location.hash = 'secDias'; toast('Días/horas sacados guardados');
-      };
-      if (reservados) ask('Ojo: hay turnos reservados', 'Ya tenés ' + reservados + ' turno(s) reservado(s) en esos días/horas. No se cancelan solos: si hace falta, cancelalos arriba. ¿Guardar igual?', 'Sí, guardar', guardar);
-      else guardar();
-    };
-  }
   const cerrBtn = $('#cerrBtn'); if (cerrBtn) cerrBtn.onclick = () => {
     const d = $('#cerrDesde').value, h = $('#cerrHasta').value || d;
     if (!d) return toast('Elegí la fecha desde');
