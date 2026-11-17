@@ -1518,7 +1518,7 @@ function extraEstado(x) {
   const ofer = cs[x.fecha] || [], g = extraGrilla(x), si = g.filter(h => ofer.indexOf(h) >= 0), no = g.filter(h => ofer.indexOf(h) < 0);
   let h = '';
   if (si.length) h += '<small class="ok-t">✔ Los tutores ven: ' + si.join(', ') + '</small>';
-  if (no.length) h += '<small class="warn-t">⚠ No se ofrece ' + no.join(', ') + ': ese horario se cruza con algo de tu Google Calendar' + (x.servicio === 'neuro' ? ' o con los 15 min de viaje desde un domicilio' : ' o con los 15 min de viaje a CEVET') + ', o ya está reservado.</small>';
+  if (no.length) h += '<small class="warn-t">⚠ No se ofrece ' + no.join(', ') + ': ese horario se cruza con algo de tu Google Calendar' + (x.servicio === 'neuro' ? ' o con los 15 min de viaje desde un domicilio' : ' o con los 15 min de viaje a CEVET') + ', o ya está reservado.' + (x.servicio === 'neuro' ? ' Si ese evento es en CEVET, poné CEVET en su título y no se deja margen de viaje.' : '') + '</small>';
   return h;
 }
 async function chequearExtras(forzar) {
