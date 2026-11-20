@@ -195,6 +195,8 @@ footer.ig a.wabtn svg{width:20px;height:20px}
 .cal button.sel{background:var(--brand);border-color:var(--brand);color:#fff}
 .cal.sacar button.sel{background:#b3261e;border-color:#b3261e}
 .cal button.hoy{outline:2px solid var(--brand-2);outline-offset:-3px}
+.sena-pol{display:block;margin-top:6px;font-size:12.5px;line-height:1.35;color:#6b5a1e;opacity:.9}
+.note.ok .sena-pol{color:#2f5d3a}
 .ls-tit{font-size:15px;margin:8px 0 6px;color:var(--ink)}
 .ls-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:6px 8px 6px 10px;margin:0 0 6px;background:#fff}
 .ls-row label{display:flex;align-items:center;gap:10px;flex:1;margin:0;font-weight:400;font-size:15px;color:var(--ink);cursor:pointer;min-width:0}
@@ -391,6 +393,7 @@ const DEFAULT_TEXTS = {
   fin_neuro: 'Te esperamos en CEVET.',
   fin_domi: 'Te esperamos con la mascota en casa.',
   cancelar_aviso: 'Si pagaste seña, escribinos por WhatsApp.',
+  sena_politica: 'Si cancelás el turno pasadas las 24 h desde que lo sacaste, se pierde la seña.',
   neuro_modo_titulo: '¿Cómo querés la consulta?',
   neuro_presencial_desc: 'En CEVET · Montevideo 2620',
   neuro_online_desc: 'Por videollamada · coordinamos por WhatsApp',
@@ -408,7 +411,7 @@ const TEXT_LABELS = {
   sena_nota: 'Nota de la seña ({seña} = monto)', reemplazo_nota: 'Nota del reemplazo ({profesional} = nombre)',
   sin_turnos: 'Cuando no hay horarios', fin_titulo: 'Turno reservado · título',
   fin_neuro: 'Turno reservado · Neurología', fin_domi: 'Turno reservado · Domicilio',
-  cancelar_aviso: 'Al cancelar · aviso',
+  cancelar_aviso: 'Al cancelar · aviso', sena_politica: 'Seña · aclaración de cancelación (texto chico)',
   neuro_modo_titulo: 'Neurología · pregunta presencial u online', neuro_presencial_desc: 'Neurología · descripción de "Presencial"',
   neuro_online_desc: 'Neurología · descripción de "Online"', online_titulo: 'Online · título de la pantalla',
   online_texto: 'Online · explicación', online_wa_msg: 'Online · mensaje que se manda por WhatsApp',
@@ -663,7 +666,7 @@ function viewForm(errMsg, errFields) {
         ${field('detalle', 'Piso, depto, timbre o referencias', { max: 120, ph: 'Ej: 3° B, timbre que no anda' })}`}
       <input class="hp" tabindex="-1" autocomplete="off" name="website" id="f_website" aria-hidden="true">
       ${priceBlock(precioDe(S.service).precio, precioDe(S.service).sena, 'pendiente')}
-      ${precioDe(S.service).sena ? '<div class="note warn" style="margin-top:8px">' + T('sena_nota', { 'seña': '<b>' + money(precioDe(S.service).sena) + '</b>' }) + '</div>' : ''}
+      ${precioDe(S.service).sena ? '<div class="note warn" style="margin-top:8px">' + T('sena_nota', { 'seña': '<b>' + money(precioDe(S.service).sena) + '</b>' }) + senaPolHtml() + '</div>' : ''}
       <button class="btn" type="submit" id="okBtn" style="margin-top:8px">Confirmar turno</button>
     </form>`;
   $('#back').onclick = () => viewSlots();
@@ -746,6 +749,8 @@ async function submitBooking() {
   viewDone(true);
 }
 
+/** Aclaración chica: se pierde la seña si se cancela pasadas 24 h desde que se sacó el turno. */
+function senaPolHtml() { const t = T('sena_politica'); return t ? '<small class="sena-pol">' + t + '</small>' : ''; }
 /** Bloque de precio que ven los tutores: total, seña y saldo. */
 function priceBlock(total, sena, estado) {
   total = Number(total || 0); sena = estado === 'no requerida' ? 0 : Number(sena || 0);
@@ -764,9 +769,10 @@ function viewDone(fresh) {
     <div class="card" style="border:2px solid #ffd54a">
       <h2>Falta la seña: ${money(b.senaMonto)}</h2>
       ${priceBlock(b.precioTotal, b.senaMonto, b.senaEstado)}
-      <p style="margin:0 0 12px">${esc(b.senaInstrucciones)}</p>
+      <p style="margin:0 0 4px">${esc(b.senaInstrucciones)}</p>
+      <div style="margin:0 0 12px">${senaPolHtml()}</div>
       <a class="btn wa" target="_blank" rel="noopener" href="${waLink('Hola, envío el comprobante de la seña del turno de ' + b.mascota + ' (' + b.when + ').')}">Mandar comprobante por WhatsApp</a>
-    </div>` : (b.senaEstado === 'pagada' ? '<div class="note ok">Seña recibida ✔</div>' + priceBlock(b.precioTotal, b.senaMonto, b.senaEstado) : priceBlock(b.precioTotal, b.senaMonto, b.senaEstado));
+    </div>` : (b.senaEstado === 'pagada' ? '<div class="note ok">Seña recibida ✔' + senaPolHtml() + '</div>' + priceBlock(b.precioTotal, b.senaMonto, b.senaEstado) : priceBlock(b.precioTotal, b.senaMonto, b.senaEstado));
   app.innerHTML = `
     <div class="center">
       <div class="big-ok"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
@@ -846,7 +852,7 @@ function viewManage(msg) {
       </dl>
     </div>
     ${active ? priceBlock(b.precioTotal, b.senaMonto, b.senaEstado) : ''}
-    ${active && b.senaEstado === 'pendiente' ? `<div class="card" style="border:2px solid #ffd54a"><p style="margin:0 0 12px">${esc(b.senaInstrucciones)}</p><a class="btn wa" target="_blank" rel="noopener" href="${waLink('Hola, envío el comprobante de la seña del turno de ' + b.mascota + ' (' + b.when + ').')}">Mandar comprobante por WhatsApp</a></div>` : ''}
+    ${active && b.senaEstado === 'pendiente' ? `<div class="card" style="border:2px solid #ffd54a"><p style="margin:0 0 4px">${esc(b.senaInstrucciones)}</p><div style="margin:0 0 12px">${senaPolHtml()}</div><a class="btn wa" target="_blank" rel="noopener" href="${waLink('Hola, envío el comprobante de la seña del turno de ' + b.mascota + ' (' + b.when + ').')}">Mandar comprobante por WhatsApp</a></div>` : ''}
     ${active ? (b.canChange ? `
       <div class="row">
         <button class="btn" type="button" id="reBtn">Cambiar día u horario</button>
@@ -858,7 +864,7 @@ function viewManage(msg) {
     : '<button class="btn" type="button" id="newBtn">Sacar un turno nuevo</button>'}`;
   $('#backMis').onclick = () => viewMisTurnos();
   const re = $('#reBtn'); if (re) re.onclick = () => loadSlots();
-  const cx = $('#cxBtn'); if (cx) cx.onclick = () => ask('¿Cancelar el turno?', 'Se libera el horario del ' + labelDate(b.ymd) + ' a las ' + b.hm + ' h. ' + (S.cfg && S.cfg.textos && S.cfg.textos.cancelar_aviso || DEFAULT_TEXTS.cancelar_aviso), 'Sí, cancelar', async () => {
+  const cx = $('#cxBtn'); if (cx) cx.onclick = () => ask('¿Cancelar el turno?', 'Se libera el horario del ' + labelDate(b.ymd) + ' a las ' + b.hm + ' h. ' + (S.cfg && S.cfg.textos && S.cfg.textos.cancelar_aviso || DEFAULT_TEXTS.cancelar_aviso) + (Number(b.senaMonto) > 0 && b.senaEstado !== 'no requerida' ? ' ' + T('sena_politica') : ''), 'Sí, cancelar', async () => {
     loading('Cancelando…');
     const r = await api('cancel', { token: S.token });
     if (!r.ok) return viewManage({ t: r.error });
