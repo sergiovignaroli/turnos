@@ -588,7 +588,7 @@ async function loadSlots(keepDay) {
 }
 
 function viewSlots(msg) {
-  const resched = !!S.token;
+  const resched = !!S.token || !!S.adminResch;
   const svcLbl = S.service === 'neuro' ? 'Neurología' : 'Clínica general a domicilio';
   let geoNote = '';
   if (S.service === 'domi' && S.geo && !resched) {
@@ -617,15 +617,16 @@ function viewSlots(msg) {
   app.innerHTML = `
     <button class="back" type="button" id="back">‹ Volver</button>
     ${resched ? '' : stepsBar(S.service === 'domi' ? 2 : 1, S.service === 'domi' ? 4 : 3)}
-    <h1>${resched ? 'Elegí el nuevo horario' : T('dia_titulo')}</h1>
+    <h1>${S.adminResch ? 'Nuevo horario para ' + esc(S.adminResch.mascota) : resched ? 'Elegí el nuevo horario' : T('dia_titulo')}</h1>
+    ${S.adminResch ? '<p class="hint" style="margin:-6px 0 10px">Ahora: <b>' + esc(labelDate(S.adminResch.ymd)) + ' a las ' + esc(S.adminResch.hm) + ' h</b> · ' + esc(S.adminResch.nombre + ' ' + S.adminResch.apellido) + '. Se ven todos los horarios libres (también los de menos de 3 h).</p>' : ''}
     <p class="lead"><span class="tag ${S.service}">${svcLbl}</span>${S.service === 'domi' && S.duration ? ' · visitas de ' + S.duration + ' min' : ''}</p>
     ${msg ? '<div class="note bad">' + esc(msg) + '</div>' : ''}
     ${geoNote}${body}`;
-  $('#back').onclick = () => resched ? viewManage() : (S.service === 'domi' ? viewAddress() : (S.adminBooking ? viewHome() : viewNeuroModo()));
+  $('#back').onclick = () => S.adminResch ? salirAdminResch() : resched ? viewManage() : (S.service === 'domi' ? viewAddress() : (S.adminBooking ? viewHome() : viewNeuroModo()));
   app.querySelectorAll('.day').forEach(b => b.onclick = () => { S.dayIdx = Number(b.dataset.i); viewSlots(); });
   app.querySelectorAll('.slot').forEach(b => b.onclick = () => {
     S.slot = S.days[S.dayIdx].slots[Number(b.dataset.s)]; S.slotYmd = S.days[S.dayIdx].date; S.slotProf = S.days[S.dayIdx].prof || '';
-    resched ? confirmReschedule() : viewForm();
+    S.adminResch ? confirmAdminResch() : resched ? confirmReschedule() : viewForm();
   });
   const on = app.querySelector('.day.on'); if (on && on.scrollIntoView) on.scrollIntoView({ inline: 'center', block: 'nearest' });
   scrollTop();
@@ -919,6 +920,32 @@ async function viewMisTurnos(msg) {
   scrollTop();
 }
 
+/* ---- Reprogramar desde tu panel: se mueve el mismo evento, el horario viejo se libera y (si querés) le avisa al tutor ---- */
+async function adminResch(row) {
+  S.adminResch = row; S.service = row.servicio; S.token = null;
+  loading('Buscando horarios libres…');
+  const r = await api('slots', { service: row.servicio, adminId: row.id, pin: S.pin });
+  if (!r.ok) { S.adminResch = null; renderAdmin(); return toast(r.error); }
+  S.days = r.days || []; S.duration = r.duration; S.dayIdx = Math.max(0, S.days.findIndex(d => d.date === row.ymd));
+  viewSlots();
+}
+function salirAdminResch(msg) { S.adminResch = null; S.service = null; renderAdmin(); if (msg) toast(msg); }
+function confirmAdminResch() {
+  const row = S.adminResch, s = S.slot, nuevo = labelDate(S.slotYmd) + ' a las ' + s.hm + ' h';
+  const conMail = !!row.email;
+  ask('¿Mover el turno de ' + row.mascota + '?', 'De ' + labelDate(row.ymd) + ' ' + row.hm + ' h → ' + nuevo + '. El horario viejo queda libre. ' +
+    (conMail ? 'A ' + row.nombre + ' le llega un mail con el horario nuevo.' : 'No tiene mail cargado: avisale por WhatsApp.'), 'Sí, mover', async () => {
+    loading('Moviendo el turno…');
+    const r = await api('admin_reschedule', { id: row.id, start: s.start, avisar: conMail });
+    if (!r.ok) {
+      if (r.code === 'TAKEN') { await adminResch(row); return viewSlots(r.error); }
+      return salirAdminResch(r.error);
+    }
+    const i = A.rows.findIndex(x => x.id === row.id); if (i >= 0) Object.assign(A.rows[i], r.row);
+    salirAdminResch('Turno movido a ' + nuevo + (conMail ? '. Le avisamos por mail.' : '. Avisale por WhatsApp.'));
+  });
+}
+
 function confirmReschedule() {
   const s = S.slot;
   ask('¿Cambiar el turno?', 'Nuevo horario: ' + labelDate(S.slotYmd) + ' a las ' + s.hm + ' h.', 'Sí, cambiar', async () => {
@@ -1051,6 +1078,7 @@ function renderAdmin() {
         <button class="btn small secondary" type="button" data-act="save">Guardar</button>
         ${r.whatsapp ? '<a class="btn small wa" target="_blank" rel="noopener" href="https://wa.me/' + esc(r.whatsapp) + '">WhatsApp</a>' : ''}
         <button class="btn small ghost" type="button" data-act="nota">Nota</button>
+        ${A.horDisp ? '<button class="btn small" type="button" data-act="resch">Cambiar horario</button>' : ''}
         <button class="btn small danger" type="button" data-act="cancel">Cancelar</button>
       </div>` : ''}
     </div>`;
@@ -1150,6 +1178,7 @@ function renderAdmin() {
       if (!r.ok) return toast(r.error);
       Object.assign(row, r.row); renderAdmin();
     };
+    if (q('resch')) q('resch').onclick = () => adminResch(row);
     q('cancel').onclick = () => {
       const tieneMail = !!row.email;
       ask('¿Cancelar el turno de ' + row.mascota + '?', 'Se borra de Google Calendar.' + (tieneMail ? ' Al tutor le llega un mail avisando.' : ''), 'Sí, cancelar', async () => {
@@ -1824,6 +1853,7 @@ const Demo = {
       case 'admin_ausencias': this.ausencias = p.ausencias.map((a, i) => Object.assign({}, a, { id: a.id || 'au' + i })); return { ok: true, ausencias: this.ausencias };
       case 'slots': {
         let svc = p.service, k = km, ex = null;
+        if (!p.token && p.adminId && p.pin === this.pin) { const b0 = this.db.find(x => x.id === p.adminId); if (b0) p.token = b0.token; }
         if (p.token) { const b = this.db.find(x => x.token === p.token); svc = b.servicio; k = b.km; ex = b.id; }
         return { ok: true, service: svc, days: this.days(svc, k, ex), duration: svc === 'neuro' ? 40 : (k <= 2 ? 30 : 40),
           geo: p.address ? { verified: true, km: km, near: km <= 2, formatted: p.address + ', Rosario, Santa Fe', maps: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.address + ', Rosario') } : null };
@@ -1844,6 +1874,7 @@ const Demo = {
       }
       case 'get': { const b = this.db.find(x => x.token === p.token); return b ? { ok: true, booking: this.pub(b) } : { ok: false, error: 'No encontramos ese turno (en modo demo los turnos se borran al recargar).' }; }
       case 'cancel': { const b = this.db.find(x => x.token === p.token); b.estado = 'cancelado (tutor)'; return { ok: true, booking: this.pub(b) }; }
+      case 'admin_reschedule': { if (p.pin !== this.pin) return { ok: false, error: 'PIN incorrecto.' }; const b = this.db.find(x => x.id === p.id); if (this.db.some(x => x !== b && x.estado === 'activo' && x.inicio === p.start)) return { ok: false, error: 'Ese horario ya no está libre. Elegí otro, por favor.', code: 'TAKEN' }; const d = new Date(b.fin) - new Date(b.inicio); b.inicio = p.start; b.fin = new Date(new Date(p.start).getTime() + d).toISOString(); b.notas = (b.notas ? b.notas + ' | ' : '') + 'Reprogramado por Sergio'; return { ok: true, row: this.pub(b) }; }
       case 'reschedule': { const b = this.db.find(x => x.token === p.token); const d = new Date(b.fin) - new Date(b.inicio); b.inicio = p.start; b.fin = new Date(new Date(p.start).getTime() + d).toISOString(); return { ok: true, booking: this.pub(b) }; }
       case 'admin_login': return p.pin === this.pin ? { ok: true } : { ok: false, error: 'PIN incorrecto. (En la demo es 1234)' };
       case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias, extras: this.extras, textos: this.textos, textosMail: ['mail_confirmacion', 'mail_recordatorio', 'mail_pie'], horario: JSON.parse(JSON.stringify(this.hor())), horarioOriginal: this.horOrig, horarioEditado: !!this.horario, bloqueos: this.bloqueos } : { ok: false, error: 'PIN incorrecto.' };
