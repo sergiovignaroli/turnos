@@ -66,6 +66,7 @@ p.lead{color:var(--muted);margin:0 0 18px}
 .choice.domi .ic{background:var(--domi-soft);color:var(--domi)}
 .choice b{display:block;font-size:21px;color:var(--ink)}
 .choice span{color:var(--muted);font-size:16px}
+.price-chip.big{display:inline-block;background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:16px;border-radius:999px;padding:4px 14px}
 .choice .price-chip{display:table;margin-top:6px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:14px;border-radius:999px;padding:2px 10px}
 .choice .arrow{margin-left:auto;font-size:28px;color:var(--muted)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:14px 20px;font-weight:700;font-size:18px;min-height:56px;cursor:pointer;text-decoration:none;background:var(--brand);color:#fff;width:100%}
@@ -399,7 +400,11 @@ const DEFAULT_TEXTS = {
   neuro_online_desc: 'Por videollamada · coordinamos por WhatsApp',
   online_titulo: 'Consulta neurológica online',
   online_texto: 'La consulta online se coordina por WhatsApp. Escribinos y te pasamos la disponibilidad.',
-  online_wa_msg: 'Hola, quiero una consulta neurológica online para mi mascota. ¿Qué disponibilidad tienen?'
+  online_wa_msg: 'Hola, quiero una consulta neurológica online para mi mascota. ¿Qué disponibilidad tienen?',
+  online_cg_titulo: 'Asesoramiento online',
+  online_cg_desc: 'Clínica general · por videollamada',
+  online_cg_texto: 'El asesoramiento online se coordina por WhatsApp. Escribinos y te pasamos la disponibilidad.',
+  online_cg_wa_msg: 'Hola, quiero un asesoramiento de clínica general online para mi mascota. ¿Qué disponibilidad tienen?'
 };
 const TEXT_LABELS = {
   home_titulo: 'Inicio · título', home_sub: 'Inicio · subtítulo',
@@ -415,6 +420,8 @@ const TEXT_LABELS = {
   neuro_modo_titulo: 'Neurología · pregunta presencial u online', neuro_presencial_desc: 'Neurología · descripción de "Presencial"',
   neuro_online_desc: 'Neurología · descripción de "Online"', online_titulo: 'Online · título de la pantalla',
   online_texto: 'Online · explicación', online_wa_msg: 'Online · mensaje que se manda por WhatsApp',
+  online_cg_titulo: 'Asesoramiento clínica online · título', online_cg_desc: 'Asesoramiento clínica online · descripción',
+  online_cg_texto: 'Asesoramiento clínica online · explicación', online_cg_wa_msg: 'Asesoramiento clínica online · mensaje de WhatsApp',
   mail_confirmacion: 'Mail de confirmación · texto extra', mail_recordatorio: 'Mail de recordatorio · texto extra',
   mail_pie: 'Todos los mails · texto al pie'
 };
@@ -430,6 +437,7 @@ function T(k, vars) {
 function misTokens() { try { return JSON.parse(localStorage.getItem('misTurnos') || '[]'); } catch (e) { return []; } }
 function guardarToken(t) { try { const l = misTokens().filter(x => x !== t); l.unshift(t); localStorage.setItem('misTurnos', JSON.stringify(l.slice(0, 10))); } catch (e) {} }
 function olvidarToken(t) { try { localStorage.setItem('misTurnos', JSON.stringify(misTokens().filter(x => x !== t))); } catch (e) {} }
+function precioOnlineCG() { const p = S.cfg && S.cfg.precios; return p && p.online ? p.online.precio : precioDe('domi').precio; }
 function precioDe(svc) { const p = S.cfg && S.cfg.precios && S.cfg.precios[svc]; return p ? p : { precio: (S.cfg && S.cfg.precioTotal) || 0, sena: (S.cfg && S.cfg.senaMonto) || 0 }; }
 
 function store(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
@@ -488,19 +496,27 @@ function viewHome() {
     <p class="lead">${S.adminBooking ? '<b>Modo Sergio:</b> estás cargando un turno a nombre de un tutor.' : T('home_sub')}</p>
     <button class="choice neuro" type="button" data-svc="neuro">
       <span class="ic"><img src="icons/logo-neuro.png" alt=""></span>
-      <span><b>${T('neuro_titulo')}</b><span>${T('neuro_desc')}</span>${precioDe('neuro').precio ? '<span class="price-chip">Consulta ' + money(precioDe('neuro').precio) + '</span>' : ''}</span>
+      <span><b>${T('neuro_titulo')}</b><span>${T('neuro_desc')}</span></span>
       <span class="arrow" aria-hidden="true">›</span>
     </button>
     <button class="choice domi" type="button" data-svc="domi">
       <span class="ic"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span>
-      <span><b>${T('domi_titulo')}</b><span>${T('domi_desc')}</span>${precioDe('domi').precio ? '<span class="price-chip">Consulta ' + money(precioDe('domi').precio) + '</span>' : ''}</span>
+      <span><b>${T('domi_titulo')}</b><span>${T('domi_desc')}</span></span>
       <span class="arrow" aria-hidden="true">›</span>
     </button>
+    ${S.adminBooking ? '' : `<button class="choice domi" type="button" data-svc="onlinecg">
+      <span class="ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="M15 10l6-3v10l-6-3z"/></svg></span>
+      <span><b>${T('online_cg_titulo')}</b><span>${T('online_cg_desc')}</span></span>
+      <span class="arrow" aria-hidden="true">›</span>
+    </button>`}
     ${S.adminBooking ? '' : '<button class="btn ghost" type="button" id="misBtn" style="margin:0 0 14px">' + T('mis_turnos_btn') + '</button>'}
     <div class="note warn">${T('urgencia')}</div>
     ${S.adminBooking ? '<button class="btn ghost" type="button" id="toAdmin">Volver al panel</button>' : ''}`;
   const mb = $('#misBtn'); if (mb) mb.onclick = viewMisTurnos;
-  app.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => { S.service = b.dataset.svc; S.service === 'domi' ? viewAddress() : (S.adminBooking ? loadSlots() : viewNeuroModo()); });
+  app.querySelectorAll('[data-svc]').forEach(b => b.onclick = () => {
+    if (b.dataset.svc === 'onlinecg') return viewOnlineCG();
+    S.service = b.dataset.svc; S.service === 'domi' ? viewAddress() : (S.adminBooking ? loadSlots() : viewNeuroModo());
+  });
   const ta = $('#toAdmin'); if (ta) ta.onclick = () => { S.adminBooking = false; viewAdmin(); };
   scrollTop();
 }
@@ -547,12 +563,34 @@ function viewOnline() {
   scrollTop();
 }
 
+/* ==================== ASESORAMIENTO DE CLÍNICA GENERAL ONLINE (se coordina por WhatsApp) ==================== */
+function viewOnlineCG() {
+  const ov = (S.cfg && S.cfg.textos) || {};
+  const msg = ov.online_cg_wa_msg || DEFAULT_TEXTS.online_cg_wa_msg, pr = precioOnlineCG();
+  app.innerHTML = `
+    <button class="back" type="button" id="back">‹ Volver</button>
+    <h1>${T('online_cg_titulo')}</h1>
+    <p class="lead">${T('online_cg_desc')}</p>
+    <div class="card">
+      ${pr ? '<p style="margin:0 0 10px"><span class="price-chip big">Asesoramiento ' + money(pr) + '</span></p>' : ''}
+      <p style="margin:0 0 16px">${T('online_cg_texto')}</p>
+      <a class="btn wa" id="onlCgWa" target="_blank" rel="noopener" href="${waLink(msg)}">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+        Consultar disponibilidad por WhatsApp</a>
+    </div>
+    <button class="btn ghost" type="button" id="toDomi">Prefiero la consulta a domicilio</button>`;
+  $('#back').onclick = viewHome;
+  $('#toDomi').onclick = () => { S.service = 'domi'; viewAddress(); };
+  scrollTop();
+}
+
 function viewAddress(errMsg) {
   app.innerHTML = `
     <button class="back" type="button" id="back">‹ Volver</button>
     ${stepsBar(1, 4)}
     <h1>${T('domi_pregunta')}</h1>
     <p class="lead">${T('domi_pregunta_sub')}</p>
+    ${precioDe('domi').precio && !S.adminBooking ? '<p style="margin:-6px 0 14px"><span class="price-chip big">Consulta ' + money(precioDe('domi').precio) + '</span></p>' : ''}
     <form id="addrForm" class="card" novalidate>
       <label class="f" for="addr">Calle y número</label>
       <input class="in ${errMsg ? 'err' : ''}" id="addr" name="addr" autocomplete="street-address" placeholder="Ej: Córdoba 1520" value="${esc(S.address)}" required>
@@ -1086,7 +1124,7 @@ function renderAdmin() {
   html += adminAvisosHtml() + adminAusenciasHtml();
   html += adminHorarioHtml() + adminExtrasHtml() + adminTextosHtml();
   html += `<div class="card" style="margin-top:24px" id="secPrecios"><h2 style="font-size:19px">Precios de las consultas y señas</h2>
-    <p class="hint" style="margin:0 0 10px">Cada servicio tiene su precio y su seña, <b>independientes</b>. El tutor ve los de Neurología solo cuando elige Neurología, y los de Clínica solo cuando elige Clínica. Valen para los turnos <b>nuevos</b>; los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
+    <p class="hint" style="margin:0 0 10px">Cada servicio tiene su precio y su seña, <b>independientes</b>. En la primera pantalla el tutor no ve precios: ve el de cada servicio recién cuando lo elige. Valen para los turnos <b>nuevos</b>; los ya reservados conservan su precio (si hace falta, cambialo en cada turno, arriba).</p>
     <div class="price-edit" style="border-color:var(--neuro);background:var(--neuro-soft)">
       <h3 style="color:var(--neuro)">🧠 NEUROLOGÍA</h3>
       <p class="hint" style="margin:0 0 8px">Consulta neurológica en CEVET.</p>
@@ -1104,6 +1142,11 @@ function renderAdmin() {
       <div id="cDomiBox" ${A.precios.domi.sena > 0 ? '' : 'hidden'}><label class="f" for="sDomi">Monto de la seña</label><input class="in" id="sDomi" inputmode="numeric" value="${A.precios.domi.sena || ''}"></div>
       <p class="hint" id="hDomi" style="margin:8px 0 0"></p>
     </div>
+    ${A.precios.online ? `<div class="price-edit" style="border-color:var(--domi);background:var(--domi-soft)">
+      <h3 style="color:var(--domi)">💻 ASESORAMIENTO CLÍNICA GENERAL ONLINE</h3>
+      <p class="hint" style="margin:0 0 8px">Se coordina por WhatsApp (no reserva turno ni pide seña en la app). El tutor ve este precio al elegirlo.</p>
+      <label class="f" for="pOnl">Precio del asesoramiento</label><input class="in" id="pOnl" inputmode="numeric" value="${A.precios.online.precio}">
+    </div>` : ''}
     ${S.cfg && S.cfg.senaOpcional ? '' : '<p class="hint">Para poder sacar la seña de un servicio, primero actualizá el servidor (Code.gs) a la última versión.</p>'}
     <label class="f" for="sInstr">Instrucciones de pago de la seña (las ve el tutor, sirven para los dos servicios)</label><textarea class="in" id="sInstr" maxlength="600">${esc(A.senaInstr)}</textarea>
     <button class="btn" style="margin-top:12px" type="button" id="saveCfg">Guardar precios y señas</button></div>
@@ -1150,13 +1193,15 @@ function renderAdmin() {
   tog('#cNeuro', '#cNeuroBox', hN); tog('#cDomi', '#cDomiBox', hD); hN(); hD();
   $('#saveCfg').onclick = async () => {
     const pN = num($('#pNeuro').value), pD = num($('#pDomi').value), sN = senaOf('#cNeuro', '#sNeuro'), sD = senaOf('#cDomi', '#sDomi');
+    const pO = $('#pOnl') ? num($('#pOnl').value) : null;
+    if ($('#pOnl') && !pO) return toast('Poné el precio del asesoramiento online');
     if (!pN || !pD) return toast('Poné el precio total de las dos consultas');
     if (($('#cNeuro').checked && !sN) || ($('#cDomi').checked && !sD)) return toast('Poné el monto de la seña, o destildá "Pedir seña"');
     if (sN > pN) return toast('Neurología: la seña es mayor que el total');
     if (sD > pD) return toast('Clínica: la seña es mayor que el total');
-    const r = await api('admin_settings', { precioNeuro: String(pN), senaNeuro: String(sN), precioDomi: String(pD), senaDomi: String(sD), senaInstrucciones: $('#sInstr').value });
+    const r = await api('admin_settings', Object.assign({ precioNeuro: String(pN), senaNeuro: String(sN), precioDomi: String(pD), senaDomi: String(sD), senaInstrucciones: $('#sInstr').value }, pO ? { precioOnline: String(pO) } : {}));
     if (!r.ok) return toast(r.error);
-    if (!r.precios || r.precios.domi.precio !== pD || r.precios.neuro.precio !== pN || r.precios.domi.sena !== sD || r.precios.neuro.sena !== sN)
+    if (!r.precios || r.precios.domi.precio !== pD || r.precios.neuro.precio !== pN || r.precios.domi.sena !== sD || r.precios.neuro.sena !== sN || (pO && (!r.precios.online || r.precios.online.precio !== pO)))
       return toast('⚠ El servidor no guardó todo. Actualizá el Code.gs a la última versión.');
     A.senaMonto = r.senaMonto; A.precioTotal = r.precioTotal; A.precios = r.precios; A.senaInstr = r.senaInstrucciones;
     if (S.cfg) { S.cfg.senaMonto = r.senaMonto; S.cfg.precioTotal = r.precioTotal; S.cfg.precios = r.precios; }
@@ -1799,7 +1844,7 @@ const Demo = {
   horOrig: { neuro: { 0: [], 1: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '17:00' }, { desde: '18:00', hasta: '18:40' }, { desde: '19:00', hasta: '19:40' }], 2: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '19:40' }], 3: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '19:40' }], 4: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '17:00' }, { desde: '18:00', hasta: '18:40' }, { desde: '19:00', hasta: '19:40' }], 5: [{ desde: '09:40', hasta: '13:00', ancla: '11:00' }, { desde: '15:00', hasta: '17:00' }, { desde: '18:00', hasta: '18:40' }, { desde: '19:00', hasta: '19:40' }], 6: [{ desde: '10:00', hasta: '12:00' }] },
     domi: { 0: [], 1: [{ desde: '09:00', hasta: '15:30' }], 2: [{ desde: '09:00', hasta: '19:00' }], 3: [{ desde: '09:00', hasta: '19:00' }], 4: [{ desde: '09:00', hasta: '15:30' }], 5: [{ desde: '09:00', hasta: '15:30' }], 6: [] }, lejosDemora: 60 },
   hor() { return this.horario || this.horOrig; },
-  precios() { return { neuro: { precio: this.precio, sena: this.sena }, domi: { precio: this.precioD == null ? this.precio : this.precioD, sena: this.senaD == null ? this.sena : this.senaD }, clinicaPropio: this.precioD != null }; },
+  precios() { return { neuro: { precio: this.precio, sena: this.sena }, domi: { precio: this.precioD == null ? this.precio : this.precioD, sena: this.senaD == null ? this.sena : this.senaD }, online: { precio: this.precioO == null ? (this.precioD == null ? this.precio : this.precioD) : this.precioO, sena: 0 }, clinicaPropio: this.precioD != null }; },
   textosApp() { const o = {}; Object.keys(this.textos).forEach(k => { if (k.indexOf('mail_') !== 0) o[k] = this.textos[k]; }); return o; },
   avisos: [{ id: 'aviso-vac', v: '1', activo: true, popup: true, estilo: 'importante', titulo: 'Estoy de vacaciones hasta el 25 de octubre', texto: 'Las consultas clínicas y a domicilio las atiende mi colega <b>Luciano Bellotti</b>: podés sacar turno de domicilio normalmente desde esta app.<br>Los turnos de <span style="color:#5b3fa0">Neurología</span> se retoman desde el <span style="background-color:#fff176">lunes 26 de octubre</span>.', desde: '', hasta: '2026-10-25', linkTexto: '', linkUrl: '' }],
   ausencias: [{ id: 'vac', desde: '2026-10-02', hasta: '2026-10-25', motivo: 'Vacaciones', neuro: 'cerrado', domi: 'reemplazo', reemplazo: { nombre: 'Luciano Bellotti', email: '', calendarId: '', desde: '', hasta: '', dias: [1,2,3,4,5] }, senaInstrucciones: '' }],
@@ -1880,7 +1925,7 @@ const Demo = {
       case 'admin_list': return p.pin === this.pin ? { ok: true, rows: this.db.map(b => this.pub(b)), senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr, avisos: this.avisos, ausencias: this.ausencias, extras: this.extras, textos: this.textos, textosMail: ['mail_confirmacion', 'mail_recordatorio', 'mail_pie'], horario: JSON.parse(JSON.stringify(this.hor())), horarioOriginal: this.horOrig, horarioEditado: !!this.horario, bloqueos: this.bloqueos } : { ok: false, error: 'PIN incorrecto.' };
       case 'admin_update': { const b = this.db.find(x => x.id === p.id); if (p.senaEstado) b.senaEstado = p.senaEstado; if (p.senaMonto) b.senaMonto = Number(String(p.senaMonto).replace(/\D/g, '')); if (p.precio) b.precio = Number(String(p.precio).replace(/\D/g, '')); if (p.notas !== undefined) b.notas = p.notas; return { ok: true, row: this.pub(b) }; }
       case 'admin_cancel': { const b = this.db.find(x => x.id === p.id); b.estado = 'cancelado (Sergio)'; return { ok: true, row: this.pub(b) }; }
-      case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro !== undefined && p.senaNeuro !== '') this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi !== undefined && p.senaDomi !== '') this.senaD = n(p.senaDomi); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
+      case 'admin_settings': { const n = v => Number(String(v).replace(/\D/g, '')); if (p.precioNeuro) this.precio = n(p.precioNeuro); if (p.senaNeuro !== undefined && p.senaNeuro !== '') this.sena = n(p.senaNeuro); if (p.precioDomi) this.precioD = n(p.precioDomi); if (p.senaDomi !== undefined && p.senaDomi !== '') this.senaD = n(p.senaDomi); if (p.precioOnline) this.precioO = n(p.precioOnline); if (p.senaInstrucciones) this.instr = p.senaInstrucciones; return { ok: true, senaMonto: this.sena, precioTotal: this.precio, precios: this.precios(), senaInstrucciones: this.instr }; }
       case 'admin_horario': if (p.restaurar) { this.horario = null; return { ok: true, horario: this.hor(), horarioEditado: false }; }
         for (const sv of ['neuro', 'domi']) for (let dw = 0; dw <= 6; dw++) for (const r of (p.horario[sv][dw] || [])) { if (!r.desde || !r.hasta) return { ok: false, error: 'Completá el horario "desde" y "hasta".' }; if (r.desde >= r.hasta) return { ok: false, error: 'Hay un horario al revés (' + r.desde + '–' + r.hasta + ').' }; }
         this.horario = JSON.parse(JSON.stringify(p.horario)); return { ok: true, horario: this.horario, horarioEditado: true };
