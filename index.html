@@ -66,6 +66,7 @@ p.lead{color:var(--muted);margin:0 0 18px}
 .choice.domi .ic{background:var(--domi-soft);color:var(--domi)}
 .choice b{display:block;font-size:21px;color:var(--ink)}
 .choice span{color:var(--muted);font-size:16px}
+.choice span span b{display:inline;font-size:inherit;color:var(--ink)}
 .price-chip.big{display:inline-block;background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:16px;border-radius:999px;padding:4px 14px}
 .choice .price-chip{display:table;margin-top:6px;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:14px;border-radius:999px;padding:2px 10px}
 .choice .arrow{margin-left:auto;font-size:28px;color:var(--muted)}
@@ -78,7 +79,8 @@ p.lead{color:var(--muted);margin:0 0 18px}
 .btn.small{min-height:44px;padding:8px 14px;font-size:16px;width:auto;border-radius:12px}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .row>.btn{flex:1 1 180px}
-.back{background:none;border:0;color:var(--brand);font-weight:700;font-size:17px;padding:8px 0;margin:0 0 6px;cursor:pointer;min-height:44px}
+.back{background:var(--brand-soft);border:1px solid #b9e0e3;border-radius:999px;color:var(--brand);font-weight:800;font-size:18px;padding:6px 16px 6px 12px;margin:0 0 10px;cursor:pointer;min-height:44px}
+.back:hover{background:#cdebed}
 label.f{display:block;font-weight:700;margin:14px 0 6px}
 label.f small{font-weight:400;color:var(--muted)}
 input.in,textarea.in,select.in{width:100%;border:2px solid var(--line);border-radius:12px;padding:14px;background:#fff;font-size:18px;min-height:54px}
@@ -402,7 +404,7 @@ const DEFAULT_TEXTS = {
   online_texto: 'La consulta online se coordina por WhatsApp. Escribinos y te pasamos la disponibilidad.',
   online_wa_msg: 'Hola, quiero una consulta neurológica online para mi mascota. ¿Qué disponibilidad tienen?',
   online_cg_titulo: 'Asesoramiento online',
-  online_cg_desc: 'Clínica general · por videollamada',
+  online_cg_desc: '**Clínica general** por videollamada',
   online_cg_texto: 'El asesoramiento online se coordina por WhatsApp. Escribinos y te pasamos la disponibilidad.',
   online_cg_wa_msg: 'Hola, quiero un asesoramiento de clínica general online para mi mascota. ¿Qué disponibilidad tienen?'
 };
